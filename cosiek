@@ -1,0 +1,18 @@
+mpc220> abs 1 753
+TX (12 B): 53 04 06 00 d0 01 01 00 f1 02 00 00
+RX (20 B): 91 04 0e 00 81 50 01 00 00 00 00 00 01 00 00 00 20 04 00 80
+RX bytes: b'\x91\x04\x0e\x00\x81P\x01\x00\x00\x00\x00\x00\x01\x00\x00\x00 \x04\x00\x80'
+mpc220> pos 1 
+TX (6 B): 11 04 01 00 50 01
+RX (12 B): 12 04 06 00 81 50 01 00 b5 06 00 00
+RX bytes: b'\x12\x04\x06\x00\x81P\x01\x00\xb5\x06\x00\x00'
+Odpowiedź pozycji pokazano jako RAW/HEX; nie zgadujemy jeszcze układu bajtów.
+mpc220> abs 1 0 
+TX (12 B): 53 04 06 00 d0 01 01 00 00 00 00 00
+RX (20 B): 91 04 0e 00 81 50 01 00 f1 02 00 00 01 00 00 00 10 04 00 80
+RX bytes: b'\x91\x04\x0e\x00\x81P\x01\x00\xf1\x02\x00\x00\x01\x00\x00\x00\x10\x04\x00\x80'
+mpc220> pos 1 
+TX (6 B): 11 04 01 00 50 01
+RX (12 B): 12 04 06 00 81 50 01 00 c4 03 00 00
+RX bytes: b'\x12\x04\x06\x00\x81P\x01\x00\xc4\x03\x00\x00'
+Odpowiedź pozycji pokazano jako RAW/HEX; nie zgadujemy jeszcze układu bajtów.

@@ -10,6 +10,13 @@ from typing import Optional
 from PySide6.QtCore import QThread, QTimer, QObject, Signal, Slot
 from serial.tools import list_ports
 
+from app.mpc220_calibration import (
+    angle_to_command,
+    calculate_target_angle,
+    clamp_angle,
+    raw_position_to_angle,
+)
+
 
 class TC200Worker(QObject):
     request_connect = Signal()
@@ -111,62 +118,169 @@ class TC200Worker(QObject):
 
 
 class MPC220Worker(QObject):
+    """Wykonuje komunikację MPC220 poza głównym wątkiem GUI.
+
+    Sygnały wejściowe opisują operacje użytkownika w stopniach. Worker pobiera
+    pozycję z urządzenia, używa centralnych funkcji kalibracyjnych i dopiero
+    potem przekazuje do warstwy urządzenia całkowite jednostki APT. Dzięki temu
+    wszystkie potencjalnie blokujące odczyty szeregowe odbywają się w QThread.
+    """
+
     request_connect = Signal()
-    request_move_absolute = Signal(int, float)
-    request_move_relative = Signal(int, float)
-    request_home = Signal()
+    request_set_angle = Signal(int, float)
+    request_adjust_angle = Signal(int, float)
+    request_refresh_position = Signal(int)
+    request_refresh_all_positions = Signal()
+    request_home_all = Signal()
 
     connected = Signal()
     connection_failed = Signal(str)
     status_text = Signal(str)
     error = Signal(str)
+    position_updated = Signal(int, float)
+    movement_started = Signal(int)
+    movement_finished = Signal(int, float)
+    busy_changed = Signal(bool)
+    operation_info = Signal(str)
 
     def __init__(self, mpc220) -> None:
         super().__init__()
         self.mpc220 = mpc220
 
         self.request_connect.connect(self.connect_device)
-        self.request_move_absolute.connect(self.move_absolute)
-        self.request_move_relative.connect(self.move_relative)
-        self.request_home.connect(self.home)
+        self.request_set_angle.connect(self.set_angle)
+        self.request_adjust_angle.connect(self.adjust_angle)
+        self.request_refresh_position.connect(self.refresh_position)
+        self.request_refresh_all_positions.connect(self.refresh_all_positions)
+        self.request_home_all.connect(self.home_all)
 
     @Slot()
     def connect_device(self) -> None:
+        """Łączy urządzenie i publikuje pozycje obu łopatek."""
         try:
             self.mpc220.connect()
             self.status_text.emit("Połączony")
             self.connected.emit()
+            self.refresh_all_positions()
         except Exception as error:
             self.status_text.emit("Błąd łączenia")
             self.error.emit(f"MPC220: {error}")
             self.connection_failed.emit(str(error))
 
     @Slot(int, float)
-    def move_absolute(self, paddle_number: int, position_degrees: float) -> None:
-        try:
-            self.mpc220.move_absolute(paddle_number, position_degrees)
-        except Exception as error:
-            self.error.emit(f"MPC220: nie udało się ustawić pozycji łopatki {paddle_number}: {error}")
+    def set_angle(self, paddle_number: int, angle_deg: float) -> None:
+        """Ustawia kąt absolutny, a następnie publikuje odczyt z urządzenia.
+
+        Parametry:
+            paddle_number: Numer łopatki 1 albo 2.
+            angle_deg: Docelowy kąt w stopniach z pola GUI.
+        """
+        target_angle = clamp_angle(angle_deg)
+        if target_angle != angle_deg:
+            self.operation_info.emit(
+                f"MPC220: cel ograniczono do {target_angle:.1f}°."
+            )
+        self._move_to_angle(paddle_number, target_angle)
 
     @Slot(int, float)
-    def move_relative(self, paddle_number: int, step_degrees: float) -> None:
+    def adjust_angle(self, paddle_number: int, delta_angle_deg: float) -> None:
+        """Zmienia kąt względem aktualnego odczytu, używając ruchu absolutnego.
+
+        Parametry:
+            paddle_number: Numer łopatki 1 albo 2.
+            delta_angle_deg: Krok w stopniach, np. ``-10.0`` albo ``+5.0``.
+
+        Najpierw odczytujemy licznik MPC220, ponieważ etykieta GUI nie jest
+        źródłem prawdy. Dopiero z tego odczytu wyliczamy cel, a urządzenie
+        dostaje ``move_absolute_units`` zamiast ``mot_move_relative``.
+        """
         try:
-            self.mpc220.move_relative(paddle_number, step_degrees)
+            raw_position = self.mpc220.read_position_units(paddle_number)
+            current_angle = raw_position_to_angle(raw_position)
+            target_angle = calculate_target_angle(current_angle, delta_angle_deg)
+            self.operation_info.emit(
+                f"MPC220: łopatka {paddle_number}, aktualny kąt="
+                f"{current_angle:.2f}°, krok={delta_angle_deg:+.2f}°."
+            )
+            if target_angle != current_angle + delta_angle_deg:
+                self.operation_info.emit(
+                    f"MPC220: cel ograniczono do {target_angle:.1f}°."
+                )
+            self._move_to_angle(paddle_number, target_angle)
         except Exception as error:
-            self.error.emit(f"MPC220: nie udało się przesunąć łopatki {paddle_number}: {error}")
+            self.error.emit(
+                f"MPC220: nie udało się zmienić kąta łopatki "
+                f"{paddle_number}: {error}"
+            )
+
+    def _move_to_angle(self, paddle_number: int, target_angle: float) -> None:
+        """Wysyła absolutny cel, czeka na ruch i odczytuje rzeczywistą pozycję."""
+        self.busy_changed.emit(True)
+        self.movement_started.emit(paddle_number)
+        try:
+            target_units = angle_to_command(target_angle)
+            self.operation_info.emit(
+                f"MPC220: łopatka {paddle_number}, cel={target_angle:.2f}°, "
+                f"command={target_units}."
+            )
+            self.mpc220.move_absolute_units(paddle_number, target_units)
+            self.mpc220.wait_until_stopped(paddle_number)
+            raw_position = self.mpc220.read_position_units(paddle_number)
+            actual_angle = raw_position_to_angle(raw_position)
+            displayed_angle = clamp_angle(actual_angle)
+            self.position_updated.emit(paddle_number, displayed_angle)
+            self.movement_finished.emit(paddle_number, displayed_angle)
+            self.operation_info.emit(
+                f"MPC220: łopatka {paddle_number} zakończyła ruch, "
+                f"raw={raw_position}, kąt={actual_angle:.2f}°."
+            )
+        except Exception as error:
+            self.error.emit(
+                f"MPC220: nie udało się ustawić łopatki {paddle_number}: {error}"
+            )
+        finally:
+            self.busy_changed.emit(False)
+
+    @Slot(int)
+    def refresh_position(self, paddle_number: int) -> None:
+        """Odczytuje jedną łopatkę i emituje jej kąt do GUI."""
+        try:
+            raw_position = self.mpc220.read_position_units(paddle_number)
+            angle = raw_position_to_angle(raw_position)
+            self.position_updated.emit(paddle_number, clamp_angle(angle))
+            self.operation_info.emit(
+                f"MPC220: łopatka {paddle_number}, odczyt raw={raw_position}, "
+                f"kąt={angle:.2f}°."
+            )
+        except Exception as error:
+            self.error.emit(
+                f"MPC220: nie udało się odczytać pozycji łopatki "
+                f"{paddle_number}: {error}"
+            )
 
     @Slot()
-    def home(self) -> None:
+    def refresh_all_positions(self) -> None:
+        """Odczytuje obie łopatki po kolei, bez blokowania GUI."""
+        for paddle_number in (1, 2):
+            self.refresh_position(paddle_number)
+
+    @Slot()
+    def home_all(self) -> None:
+        """Wykonuje homing obu łopatek i publikuje oba odczyty."""
+        self.busy_changed.emit(True)
         try:
-            self.mpc220.home()
+            self.mpc220.home_all()
+            self.refresh_all_positions()
         except Exception as error:
             self.error.emit(f"MPC220: nie udało się wykonać homingu: {error}")
+        finally:
+            self.busy_changed.emit(False)
 
 
 class MainController:
-    MPC_SMALL_STEP = 0.1
-    MPC_MEDIUM_STEP = 1.0
-    MPC_LARGE_STEP = 5.0
+    MPC_SMALL_STEP = 1.0
+    MPC_MEDIUM_STEP = 5.0
+    MPC_LARGE_STEP = 10.0
 
     def __init__(self, window, tc200, mdt694b, mpc220, ads1263,
                  plot_manager, system_control, logger) -> None:
@@ -201,22 +315,25 @@ class MainController:
 
         self.window.mdt_set_button.clicked.connect(self.set_mdt_voltage)
         self.window.mpc_refresh_ports_button.clicked.connect(self.refresh_serial_ports)
+        self.window.mpc_refresh_positions_button.clicked.connect(
+            self.refresh_mpc_positions
+        )
 
-        self.window.mpc1_left_large_button.clicked.connect(partial(self.move_mpc_relative, 1, -self.MPC_LARGE_STEP))
-        self.window.mpc1_left_medium_button.clicked.connect(partial(self.move_mpc_relative, 1, -self.MPC_MEDIUM_STEP))
-        self.window.mpc1_left_small_button.clicked.connect(partial(self.move_mpc_relative, 1, -self.MPC_SMALL_STEP))
-        self.window.mpc1_right_small_button.clicked.connect(partial(self.move_mpc_relative, 1, self.MPC_SMALL_STEP))
-        self.window.mpc1_right_medium_button.clicked.connect(partial(self.move_mpc_relative, 1, self.MPC_MEDIUM_STEP))
-        self.window.mpc1_right_large_button.clicked.connect(partial(self.move_mpc_relative, 1, self.MPC_LARGE_STEP))
-        self.window.mpc1_set_button.clicked.connect(partial(self.set_mpc_absolute, 1))
+        self.window.mpc1_left_large_button.clicked.connect(partial(self.adjust_mpc_angle, 1, -self.MPC_LARGE_STEP))
+        self.window.mpc1_left_medium_button.clicked.connect(partial(self.adjust_mpc_angle, 1, -self.MPC_MEDIUM_STEP))
+        self.window.mpc1_left_small_button.clicked.connect(partial(self.adjust_mpc_angle, 1, -self.MPC_SMALL_STEP))
+        self.window.mpc1_right_small_button.clicked.connect(partial(self.adjust_mpc_angle, 1, self.MPC_SMALL_STEP))
+        self.window.mpc1_right_medium_button.clicked.connect(partial(self.adjust_mpc_angle, 1, self.MPC_MEDIUM_STEP))
+        self.window.mpc1_right_large_button.clicked.connect(partial(self.adjust_mpc_angle, 1, self.MPC_LARGE_STEP))
+        self.window.mpc1_set_button.clicked.connect(partial(self.set_mpc_angle, 1))
 
-        self.window.mpc2_left_large_button.clicked.connect(partial(self.move_mpc_relative, 2, -self.MPC_LARGE_STEP))
-        self.window.mpc2_left_medium_button.clicked.connect(partial(self.move_mpc_relative, 2, -self.MPC_MEDIUM_STEP))
-        self.window.mpc2_left_small_button.clicked.connect(partial(self.move_mpc_relative, 2, -self.MPC_SMALL_STEP))
-        self.window.mpc2_right_small_button.clicked.connect(partial(self.move_mpc_relative, 2, self.MPC_SMALL_STEP))
-        self.window.mpc2_right_medium_button.clicked.connect(partial(self.move_mpc_relative, 2, self.MPC_MEDIUM_STEP))
-        self.window.mpc2_right_large_button.clicked.connect(partial(self.move_mpc_relative, 2, self.MPC_LARGE_STEP))
-        self.window.mpc2_set_button.clicked.connect(partial(self.set_mpc_absolute, 2))
+        self.window.mpc2_left_large_button.clicked.connect(partial(self.adjust_mpc_angle, 2, -self.MPC_LARGE_STEP))
+        self.window.mpc2_left_medium_button.clicked.connect(partial(self.adjust_mpc_angle, 2, -self.MPC_MEDIUM_STEP))
+        self.window.mpc2_left_small_button.clicked.connect(partial(self.adjust_mpc_angle, 2, -self.MPC_SMALL_STEP))
+        self.window.mpc2_right_small_button.clicked.connect(partial(self.adjust_mpc_angle, 2, self.MPC_SMALL_STEP))
+        self.window.mpc2_right_medium_button.clicked.connect(partial(self.adjust_mpc_angle, 2, self.MPC_MEDIUM_STEP))
+        self.window.mpc2_right_large_button.clicked.connect(partial(self.adjust_mpc_angle, 2, self.MPC_LARGE_STEP))
+        self.window.mpc2_set_button.clicked.connect(partial(self.set_mpc_angle, 2))
 
         self.window.mpc_home_button.clicked.connect(self.home_mpc)
 
@@ -249,6 +366,11 @@ class MainController:
         self.mpc220_worker.connection_failed.connect(self._on_mpc220_connection_failed)
         self.mpc220_worker.status_text.connect(self.window.mpc_status_label.setText)
         self.mpc220_worker.error.connect(self._on_mpc220_error)
+        self.mpc220_worker.position_updated.connect(self._on_mpc_position_updated)
+        self.mpc220_worker.movement_started.connect(self._on_mpc_movement_started)
+        self.mpc220_worker.movement_finished.connect(self._on_mpc_movement_finished)
+        self.mpc220_worker.busy_changed.connect(self._set_mpc_controls_enabled)
+        self.mpc220_worker.operation_info.connect(self.logger.info)
         self.mpc220_worker.connected.connect(self._on_device_connection_finished)
         self.mpc220_worker.connection_failed.connect(self._on_device_connection_finished)
         self.mpc220_thread.start()
@@ -346,13 +468,57 @@ class MainController:
         self.logger.error(message)
 
     def _on_mpc220_connected(self) -> None:
-        self.logger.info("Połączono z MPC220")
+        self.logger.info(f"MPC220: połączono z portem {self.mpc220.port}")
 
     def _on_mpc220_connection_failed(self, message: str) -> None:
         self.logger.error(f"Błąd połączenia MPC220: {message}")
 
     def _on_mpc220_error(self, message: str) -> None:
+        self.window.mpc_status_label.setText("Błąd komunikacji")
         self.logger.error(message)
+
+    def _on_mpc_position_updated(
+        self,
+        paddle_number: int,
+        angle_deg: float,
+    ) -> None:
+        """Wyświetla wyłącznie kąt obliczony z ostatniego odczytu urządzenia."""
+        position_label = getattr(self.window, f"mpc{paddle_number}_position_label")
+        position_label.setText(f"{angle_deg:.1f}°")
+
+    def _on_mpc_movement_started(self, paddle_number: int) -> None:
+        """Pokazuje operatorowi, która łopatka jest aktualnie sterowana."""
+        self.window.mpc_status_label.setText(f"Ruch łopatki {paddle_number}...")
+
+    def _on_mpc_movement_finished(
+        self,
+        paddle_number: int,
+        angle_deg: float,
+    ) -> None:
+        """Przywraca status po udanym ruchu; pozycję ustawia osobny sygnał."""
+        self.window.mpc_status_label.setText("Połączony")
+        self.logger.info(
+            f"MPC220: łopatka {paddle_number}, potwierdzony kąt={angle_deg:.2f}°."
+        )
+
+    def _set_mpc_controls_enabled(self, enabled: bool) -> None:
+        """Blokuje tylko sterowanie MPC220 podczas operacji w workerze."""
+        controls = [self.window.mpc_home_button, self.window.mpc_refresh_positions_button]
+        for paddle_number in (1, 2):
+            controls.extend(
+                getattr(self.window, f"mpc{paddle_number}_{suffix}")
+                for suffix in (
+                    "left_large_button",
+                    "left_medium_button",
+                    "left_small_button",
+                    "right_small_button",
+                    "right_medium_button",
+                    "right_large_button",
+                    "set_button",
+                )
+            )
+        for control in controls:
+            control.setEnabled(enabled)
 
     def _on_device_connection_finished(self) -> None:
         self.pending_connections -= 1
@@ -386,10 +552,15 @@ class MainController:
     def set_mdt_voltage(self) -> None:
         self.logger.info("MDT694B: ustawianie napięcia (funkcja jeszcze niezaimplementowana).")
 
-    def move_mpc_relative(self, paddle_number: int, step_degrees: float) -> None:
-        self.mpc220_worker.request_move_relative.emit(paddle_number, step_degrees)
+    def adjust_mpc_angle(self, paddle_number: int, step_degrees: float) -> None:
+        """Zleca workerowi względną zmianę kąta realizowaną absolutnym ruchem."""
+        self.mpc220_worker.request_adjust_angle.emit(paddle_number, step_degrees)
 
-    def set_mpc_absolute(self, paddle_number: int) -> None:
+    def refresh_mpc_positions(self) -> None:
+        """Zleca workerowi odczyt pozycji obu łopatek."""
+        self.mpc220_worker.request_refresh_all_positions.emit()
+
+    def set_mpc_angle(self, paddle_number: int) -> None:
         try:
             if paddle_number == 1:
                 angle = self.window.mpc1_target_input.value()
@@ -398,13 +569,14 @@ class MainController:
             else:
                 raise ValueError(f"Nieprawidlowy numer lopatki: {paddle_number}")
 
-            self.logger.info(f"MPC: Ustawiam lopatke {paddle_number} na {angle:.2f}°.")
-            self.mpc220_worker.request_move_absolute.emit(paddle_number, angle)
+            self.logger.info(f"MPC220: ustawiam łopatkę {paddle_number} na {angle:.2f}°.")
+            self.mpc220_worker.request_set_angle.emit(paddle_number, angle)
         except Exception as error:
-            self.logger.error(f"MPC220: nie udalo sie ustawic lopatki {paddle_number}: {error}")
+            self.logger.error(f"MPC220: nie udało się ustawić łopatki {paddle_number}: {error}")
 
     def home_mpc(self) -> None:
-        self.mpc220_worker.request_home.emit()
+        """Zleca workerowi homing obu łopatek."""
+        self.mpc220_worker.request_home_all.emit()
 
     def start_measurement(self) -> None:
         if self.measurement_timer.isActive():

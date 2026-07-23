@@ -251,6 +251,7 @@ class MainWindow(QMainWindow):
         self.mpc_port_label = QLabel("Port:")
         self.mpc_port_combo = QComboBox()
         self.mpc_refresh_ports_button = QPushButton("Odśwież porty")
+        self.mpc_refresh_positions_button = QPushButton("Odśwież pozycje")
         self.mpc_home_button = QPushButton("Home obu łopatek")
         self.mpc_status_label = QLabel("Status: niepołączony")
 
@@ -259,6 +260,9 @@ class MainWindow(QMainWindow):
         port_layout.addWidget(self.mpc_port_combo)
         port_layout.addWidget(self.mpc_refresh_ports_button)
 
+        # Odczytujemy pozycje z MPC220, zamiast odtwarzać je z historii GUI.
+        # Dzięki temu operator zawsze widzi stan potwierdzony przez urządzenie.
+        layout.addWidget(self.mpc_refresh_positions_button)
         layout.addLayout(port_layout)
         layout.addWidget(self.mpc_home_button)
         layout.addWidget(self.mpc_status_label)
@@ -290,17 +294,17 @@ class MainWindow(QMainWindow):
 
         move_layout = QHBoxLayout()
 
-        left_large = QPushButton("<<<")
-        left_medium = QPushButton("<<")
-        left_small = QPushButton("<")
+        left_large = QPushButton("-10°")
+        left_medium = QPushButton("-5°")
+        left_small = QPushButton("-1°")
 
         position_label = QLabel("-- °")
         position_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         position_label.setMinimumWidth(80)
 
-        right_small = QPushButton(">")
-        right_medium = QPushButton(">>")
-        right_large = QPushButton(">>>")
+        right_small = QPushButton("+1°")
+        right_medium = QPushButton("+5°")
+        right_large = QPushButton("+10°")
 
         move_layout.addWidget(left_large)
         move_layout.addWidget(left_medium)
@@ -319,8 +323,10 @@ class MainWindow(QMainWindow):
         target_layout.addWidget(QLabel("Pozycja docelowa:"))
 
         target_input = QDoubleSpinBox()
-        target_input.setDecimals(2)
-        target_input.setRange(0.0, 10000.0)
+        target_input.setDecimals(1)
+        target_input.setRange(1.0, 160.0)
+        target_input.setSingleStep(1.0)
+        target_input.setValue(1.0)
         target_input.setSuffix(" °")
 
         set_button = QPushButton("Ustaw")

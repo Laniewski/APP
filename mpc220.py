@@ -140,64 +140,6 @@ class MPC220:
 
         self.send(command)
 
-    def move_absolute(self, paddle_number: int, position_units: int) -> None:
-        """Kompatybilny alias dla ``move_absolute_units``.
-
-        Parametry:
-            paddle_number: Numer łopatki 1 albo 2.
-            position_units: Absolutna pozycja w jednostkach APT, nie w stopniach.
-
-        Zwraca:
-            ``None`` po wysłaniu komendy.
-
-        Alias zachowuje starszą nazwę publiczną, ale celowo przyjmuje teraz
-        jednoznaczne jednostki urządzenia. Nowy kod powinien używać nazwy
-        ``move_absolute_units``.
-        """
-        self.move_absolute_units(paddle_number, position_units)
-
-    def move_relative_units(
-        self,
-        paddle_number: int,
-        distance_units: int,
-    ) -> None:
-        """Wysyła względny dystans w jednostkach APT.
-
-        Parametry:
-            paddle_number: Numer łopatki 1 albo 2.
-            distance_units: Signed int32 dystansu w jednostkach MPC220.
-
-        Zwraca:
-            ``None`` po zapisaniu ramki.
-
-        GUI nie korzysta z tej metody: przyciski krokowe muszą odczytać
-        aktualną pozycję i wykonać ruch absolutny, aby poprawnie zastosować
-        ograniczenie 1-160 stopni. Metoda pozostaje dla niskopoziomowych,
-        istniejących zastosowań urządzenia.
-        """
-        paddle_id = self._get_paddle_id(paddle_number)
-        if not isinstance(distance_units, int):
-            raise TypeError("Dystans MPC220 musi być liczbą całkowitą.")
-        command = apt.mot_move_relative(
-            self.DEST,
-            self.SOURCE,
-            paddle_id,
-            distance_units,
-        )
-        self.send(command)
-
-    def move_relative(self, paddle_number: int, distance_units: int) -> None:
-        """Kompatybilny alias dla niskopoziomowego ruchu względnego.
-
-        Parametry:
-            paddle_number: Numer łopatki 1 albo 2.
-            distance_units: Dystans w jednostkach APT, nie w stopniach.
-
-        Zwraca:
-            ``None`` po wysłaniu komendy.
-        """
-        self.move_relative_units(paddle_number, distance_units)
-
     def read_position_units(self, paddle_number: int) -> int:
         """Odczytuje surową pozycję łopatki z ``MOT_GET_POSCOUNTER``.
 
@@ -297,21 +239,6 @@ class MPC220:
         for paddle_number in (1, 2):
             self.home_paddle(paddle_number)
 
-    def home(self, paddle_number: Optional[int] = None) -> None:
-        """Wykonuje homing jednej łopatki albo obu, zachowując stare API.
-
-        Parametry:
-            paddle_number: Numer łopatki 1 albo 2. Gdy pominięty, wykonywany
-                jest homing obu łopatek.
-
-        Zwraca:
-            ``None`` po zakończeniu homingu.
-        """
-        if paddle_number is None:
-            self.home_all()
-        else:
-            self.home_paddle(paddle_number)
-
     def _get_paddle_id(self, paddle_number: int) -> int:
         """Zamienia numer łopatki z GUI na identyfikator APT."""
 
@@ -373,9 +300,6 @@ class MPC220:
                     continue
 
                 frame_length = data_length + 6
-                if frame_length < self.POSITION_RESPONSE_LENGTH:
-                    del buffer[0]
-                    continue
                 if len(buffer) < frame_length:
                     break
 
