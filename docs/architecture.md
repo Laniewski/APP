@@ -1,37 +1,21 @@
-# Architektura APPv2
+# Architektura
 
-Nowa aplikacja APPv2 ma wyraźny podział odpowiedzialności:
+Kod aplikacji jest rozdzielony na niewielką warstwę globalną i samodzielne
+moduły urządzeń. `MainWindow` układa widoki, `ApplicationController` składa
+aplikację, `PortManager` zapobiega współdzieleniu portu, a standardowy
+`logging` przekazuje rekordy do konsoli i GUI bezpiecznym sygnałem Qt.
 
-- GUI: prezentuje dane użytkownikowi i przyjmuje polecenia.
-- Kontroler: pośredniczy między GUI a workerami, tłumacząc akcje użytkownika na zadania.
-- Workery: wykonują blokujące operacje sprzętowe poza głównym wątkiem Qt.
-- Sterowniki urządzeń: implementują logikę obsługi TC200, MDT694B, ADS1263 i MPC220.
-- Kod producentów: niskopoziomowe biblioteki Waveshare oraz Thorlabs APT w katalogu `vendor/`.
-- Urządzenia fizyczne: TC200, MDT694B, ADS1263, MPC220.
+TC200 ma trzy warstwy:
 
-Planowany przepływ komunikacji:
+1. `panel.py` emituje wyłącznie intencje użytkownika i prezentuje stan;
+2. `controller.py` zawiera kontroler oraz jedynego workera w dedykowanym
+   `QThread`;
+3. `driver.py` implementuje synchroniczny protokół RS232 bez zależności od Qt.
 
-GUI → kontroler → worker → sterownik → vendor/urządzenie
+Worker jest jedynym właścicielem drivera. Timer odczytu powstaje i działa w jego
+wątku. Zamknięcie zatrzymuje timer, wielokrotnie bezpiecznie zamyka port, kończy
+wątek i zwalnia rezerwację.
 
-Krótki opis roli warstw:
-
-- GUI odpowiada za prezentację danych i działania użytkownika.
-- Kontroler będzie łączył sygnały GUI z workerami.
-- Operacje blokujące będą wykonywane poza głównym wątkiem.
-- GUI może być modyfikowane wyłącznie w głównym wątku Qt.
-- Workery będą komunikowały wyniki do GUI za pomocą sygnałów.
-- Workery będą dodawane stopniowo.
-- Pierwszym integrowanym urządzeniem będzie TC200.
-- `MeasurementWorker` będzie później obsługiwał ciągły odczyt ADS1263.
-- TC200, MDT694B, ADS1263 i MPC220 będą wdrażane pojedynczo.
-- Stare sterowniki pozostają w `legacy/` jako referencja.
-- Kod producentów znajduje się w `vendor/`.
-- Nieusuwane funkcje będą oceniane podczas migracji urządzeń lub końcowego audytu.
-
-Planowana kolejność dalszych prac:
-
-1. TC200 — wybór portu → połączenie → odczyt temperatury → pierwszy worker.
-2. MDT694B — nowy sterownik i sterowanie napięciem.
-3. ADS1263 — warstwa pośrednia nad kodem Waveshare i ciągły pomiar dwóch kanałów.
-4. MPC220 — ponowna analiza protokołu, testy ruchu i kalibracja.
-5. Końcowy audyt nieużywanego kodu.
+Parametry oraz komendy oparto na starym działającym kodzie gałęzi `main` i
+instrukcji Thorlabs TC200 Rev G: 115200, 8N1, bez kontroli przepływu, komendy
+małymi literami zakończone CR oraz odpowiedź zakończona promptem `>`.

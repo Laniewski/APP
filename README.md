@@ -1,47 +1,59 @@
 # APPv2
 
-APPv2 to nowa wersja interfejsu GUI dla sterowania stanowiskiem laboratoryjnym. Obecnie aplikacja uruchamia samodzielne GUI w PySide6 bez komunikacji ze sprzętem.
+Modułowa aplikacja PySide6 do obsługi stanowiska laboratoryjnego. Na obecnym
+etapie zaimplementowany jest wyłącznie kontroler temperatury Thorlabs TC200.
+Katalogi MDT694B, MPC220 i pomiarów są celowo puste.
 
-## Aktualny etap projektu
+## Struktura
 
-- Nowy GUI działa niezależnie od podłączonych urządzeń.
-- Stary kod aplikacji zachowano w `legacy/` jako referencję.
-- Kod producentów znajduje się w `vendor/`.
-- Następny etap to integracja TC200.
+- `main.py` — utworzenie aplikacji i bezpieczne zamknięcie;
+- `app/` — główne okno, kontroler aplikacji, logowanie i zarządzanie portami;
+- `modules/tc200/` — panel, kontroler z workerem oraz sterownik protokołu;
+- `modules/{mdt694b,mpc220,measurement}/` — miejsca na przyszłe moduły;
+- `vendor/` — zachowane biblioteki producentów;
+- `tests/` — testy bez fizycznego urządzenia;
+- `docs/` — dokumentacja projektu.
 
-## Główna architektura
+Przepływ TC200: `TC200Panel → TC200Controller → TC200Worker (QThread) →
+TC200Driver → port szeregowy`. Odpowiedzi wracają do GUI sygnałami Qt.
 
-- `main.py` — uruchomienie aplikacji.
-- `app/main_window.py` — nowy interfejs GUI.
-- `devices/` — pakiet przyszłych sterowników urządzeń.
-- `app/workers/` — punkt startowy dla workerów wykonujących operacje poza GUI.
-- `legacy/` — stary kod aplikacji jako referencja.
-- `vendor/` — kod producentów.
-- `docs/` — dokumentacja architektury i notatki inżynierskie.
+## Instalacja i uruchomienie
 
-## Wymagania
-
-- Python 3.13
-- PySide6
-- pyqtgraph
-
-## Utworzenie środowiska
+Wymagany jest Python 3.10 lub nowszy.
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
-```
-
-## Uruchomienie aplikacji
-
-```bash
 python main.py
 ```
 
-## Ważne informacje
+Testy nie wymagają podłączonego sprzętu:
 
-- Aplikacja nie wymaga urządzeń podłączonych do komputera, aby uruchomić GUI.
-- Obecnie GUI nie realizuje rzeczywistej komunikacji z TC200, MDT694B, ADS1263 ani MPC220.
-- Stare pliki aplikacji znajdują się w `legacy/`.
-- Kod producentów znajduje się w `vendor/`.
+```bash
+python -m unittest discover -v
+```
+
+## Zakres TC200
+
+Aplikacja skanuje i rezerwuje porty, identyfikuje TC200 przez `*idn?`, odczytuje
+temperaturę bieżącą i zadaną, ustawia temperaturę 20,0–200,0°C, przełącza
+grzanie, interpretuje status i alarmy oraz okresowo odświeża dane. Operacje
+szeregowe są wykonywane kolejno w dedykowanym wątku. Timeout, błędna odpowiedź,
+inne urządzenie na porcie i zamknięcie aplikacji są obsługiwane bez blokowania
+GUI.
+
+## Pierwszy kontrolowany test ze sprzętem
+
+1. Przy wyłączonym grzaniu połącz TC200 z Raspberry Pi przez właściwy adapter
+   RS232/USB i uruchom TC200.
+2. Uruchom aplikację, kliknij „Odśwież”, wybierz rozpoznany port i „Połącz”.
+3. Potwierdź, że identyfikacja się powiodła, a temperatura, setpoint, status i
+   alarmy są odświeżane.
+4. Ustaw bezpieczną dla układu wartość niewiele wyższą od temperatury bieżącej.
+5. Włącz grzanie na krótko, obserwuj wskazanie i wyłącz je.
+6. Kliknij „Rozłącz”, ponownie połącz, a następnie zamknij aplikację podczas
+   aktywnego połączenia i sprawdź, czy port został zwolniony.
+
+Testy automatyczne potwierdzają protokół i zachowanie aplikacji z portem
+symulowanym. Nie stanowią potwierdzenia działania z fizycznym TC200.
