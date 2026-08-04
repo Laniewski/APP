@@ -105,7 +105,13 @@ class TC200Driver:
             )
         return identity
 
-    def send_command(self, command: str) -> str:
+    def send_command(self, command: str, *, allow_empty: bool = False) -> str:
+        """Wysyła jedną komendę i zwraca treść odpowiedzi bez echo i promptu.
+
+        ``allow_empty`` jest przeznaczone wyłącznie dla komend sterujących,
+        dla których echo komendy zakończone promptem jest poprawnym
+        potwierdzeniem. Brak promptu zawsze oznacza timeout.
+        """
         connection = self._require_connection()
         normalized = command.strip().lower()
         if not normalized or "\r" in normalized or "\n" in normalized:
@@ -123,7 +129,7 @@ class TC200Driver:
                 f"TC200 nie odpowiedział na {normalized!r} w ciągu {self.timeout:.1f} s."
             )
         response = self._clean_response(raw, normalized)
-        if not response:
+        if not response and not allow_empty:
             raise TC200ResponseError(f"Pusta odpowiedź na komendę {normalized!r}.")
         lowered = response.lower()
         if "command error" in lowered or "cmd_" in lowered or lowered.startswith("error"):
@@ -155,8 +161,15 @@ class TC200Driver:
         value = float(value)
         if not self.MIN_TEMPERATURE <= value <= self.MAX_TEMPERATURE:
             raise ValueError("Temperatura musi być w zakresie 20,0–200,0°C.")
-        self.send_command(f"tset={value:.1f}")
-        return self.read_setpoint()
+        expected = float(f"{value:.1f}")
+        self.send_command(f"tset={expected:.1f}", allow_empty=True)
+        confirmed = self.read_setpoint()
+        if abs(confirmed - expected) > 0.05:
+            raise TC200ResponseError(
+                "TC200 nie potwierdził ustawionej temperatury: "
+                f"oczekiwano {expected:.1f}°C, odczytano {confirmed:.1f}°C."
+            )
+        return confirmed
 
     def read_status(self) -> TC200Status:
         response = self.send_command("stat?")
@@ -180,10 +193,19 @@ class TC200Driver:
         )
 
     def set_heater(self, enabled: bool) -> TC200Status:
+        expected = bool(enabled)
         status = self.read_status()
-        if status.heater_enabled != bool(enabled):
-            self.send_command("ens")
+        if status.heater_enabled != expected:
+            # ENS przełącza stan, dlatego wolno wysłać ją najwyżej raz.
+            self.send_command("ens", allow_empty=True)
             status = self.read_status()
+            if status.heater_enabled != expected:
+                expected_text = "włączone" if expected else "wyłączone"
+                actual_text = "włączone" if status.heater_enabled else "wyłączone"
+                raise TC200ResponseError(
+                    "TC200 nie potwierdził zmiany stanu grzania: "
+                    f"oczekiwano {expected_text}, odczytano {actual_text}."
+                )
         return status
 
     def close(self) -> None:

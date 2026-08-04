@@ -91,26 +91,65 @@ class TC200DriverTests(unittest.TestCase):
         with self.assertRaises(TC200ResponseError):
             driver.send_command("tact?")
 
+    def test_control_command_accepts_echo_and_prompt_only(self):
+        driver, fake = connected_driver(b"ens\r\n>")
+        self.assertEqual(driver.send_command("ens", allow_empty=True), "")
+        self.assertEqual(fake.writes, [b"ens\r"])
+
     def test_device_error_is_invalid(self):
         driver, _ = connected_driver(b"Command error CMD_NOT_DEFINED\r\n>")
         with self.assertRaises(TC200ResponseError):
             driver.send_command("bad")
 
     def test_set_temperature_builds_command_and_reads_back(self):
-        driver, fake = connected_driver(b"OK\r\n>", b"Tset = 37.4 C\r\n>")
+        driver, fake = connected_driver(
+            b"tset=37.4\r\n>",
+            b"Tset = 37.4 C\r\n>",
+        )
         self.assertEqual(driver.set_temperature(37.4), 37.4)
         self.assertEqual(fake.writes, [b"tset=37.4\r", b"tset?\r"])
         with self.assertRaises(ValueError):
             driver.set_temperature(201)
 
+    def test_set_temperature_requires_matching_readback(self):
+        driver, fake = connected_driver(
+            b"tset=37.4\r\n>",
+            b"Tset = 36.0 C\r\n>",
+        )
+        with self.assertRaisesRegex(
+            TC200ResponseError,
+            "nie potwierdził ustawionej temperatury",
+        ):
+            driver.set_temperature(37.4)
+        self.assertEqual(fake.writes, [b"tset=37.4\r", b"tset?\r"])
+
     def test_heater_enable_and_disable(self):
         driver, fake = connected_driver(
-            b"00\r\n>", b"OK\r\n>", b"01\r\n>",
-            b"01\r\n>", b"OK\r\n>", b"00\r\n>",
+            b"00\r\n>", b"ens\r\n>", b"01\r\n>",
+            b"01\r\n>", b"ens\r\n>", b"00\r\n>",
         )
         self.assertTrue(driver.set_heater(True).heater_enabled)
         self.assertFalse(driver.set_heater(False).heater_enabled)
         self.assertEqual(fake.writes.count(b"ens\r"), 2)
+
+    def test_heater_toggle_is_sent_only_once_when_not_confirmed(self):
+        driver, fake = connected_driver(
+            b"00\r\n>",
+            b"ens\r\n>",
+            b"00\r\n>",
+        )
+        with self.assertRaisesRegex(
+            TC200ResponseError,
+            "nie potwierdził zmiany stanu grzania",
+        ):
+            driver.set_heater(True)
+        self.assertEqual(fake.writes, [b"stat?\r", b"ens\r", b"stat?\r"])
+        self.assertEqual(fake.writes.count(b"ens\r"), 1)
+
+    def test_heater_does_not_toggle_when_state_already_matches(self):
+        driver, fake = connected_driver(b"01\r\n>")
+        self.assertTrue(driver.set_heater(True).heater_enabled)
+        self.assertEqual(fake.writes, [b"stat?\r"])
 
     def test_status_and_alarms(self):
         driver, _ = connected_driver(b"Status = D1\r\nTmax ERROR\r\n>")
