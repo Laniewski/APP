@@ -2,24 +2,16 @@
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QComboBox,
-    QDoubleSpinBox,
-    QGridLayout,
-    QGroupBox,
-    QHBoxLayout,
-    QLabel,
     QMainWindow,
-    QPlainTextEdit,
-    QPushButton,
     QScrollArea,
-    QSizePolicy,
     QSplitter,
     QVBoxLayout,
     QWidget,
 )
 
-import pyqtgraph as pg
-
+from modules.mdt694b.panel import MDT694BPanel
+from modules.measurement.panel import MeasurementPanel
+from modules.mpc220.panel import MPC220Panel
 from modules.tc200.panel import TC200Panel
 
 
@@ -49,17 +41,17 @@ class MainWindow(QMainWindow):
 
     def _create_device_column(self) -> QWidget:
         content = QWidget()
-        content_layout = QVBoxLayout(content)
+        layout = QVBoxLayout(content)
 
         self.tc200_panel = TC200Panel()
-        content_layout.addWidget(self.tc200_panel)
+        layout.addWidget(self.tc200_panel)
 
         self.mdt694b_panel = self._create_mdt_panel()
-        content_layout.addWidget(self.mdt694b_panel)
+        layout.addWidget(self.mdt694b_panel)
 
         self.mpc220_panel = self._create_mpc_panel()
-        content_layout.addWidget(self.mpc220_panel)
-        content_layout.addStretch()
+        layout.addWidget(self.mpc220_panel)
+        layout.addStretch()
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -68,193 +60,54 @@ class MainWindow(QMainWindow):
 
         return scroll
 
-    def _create_mdt_panel(self) -> QGroupBox:
-        group = QGroupBox("MDT694B — sterownik piezo")
-        layout = QGridLayout(group)
+    def _create_mdt_panel(self) -> MDT694BPanel:
+        panel = MDT694BPanel()
+        self.mdt_current_voltage_label = panel.mdt_current_voltage_label
+        self.mdt_setpoint_spinbox = panel.mdt_setpoint_spinbox
+        self.mdt_set_button = panel.mdt_set_button
+        self.mdt_status_label = panel.mdt_status_label
+        self.mdt_port_combo = panel.mdt_port_combo
+        self.mdt_refresh_ports_button = panel.mdt_refresh_ports_button
+        self.mdt_connect_button = panel.mdt_connect_button
+        return panel
 
-        self.mdt_current_voltage_label = QLabel("— V")
-        self.mdt_setpoint_spinbox = QDoubleSpinBox()
-        self.mdt_setpoint_spinbox.setDecimals(3)
-        self.mdt_setpoint_spinbox.setRange(0.0, 150.0)
-        self.mdt_setpoint_spinbox.setSuffix(" V")
-        self.mdt_set_button = QPushButton("Ustaw napięcie")
-        self.mdt_status_label = QLabel("Niepołączony")
-        self.mdt_port_combo = QComboBox()
-        self.mdt_refresh_ports_button = QPushButton("Odśwież porty")
+    def _create_mpc_panel(self) -> MPC220Panel:
+        panel = MPC220Panel()
+        self.mpc_status_label = panel.mpc_status_label
+        self.mpc_port_combo = panel.mpc_port_combo
+        self.mpc_refresh_ports_button = panel.mpc_refresh_ports_button
+        self.mpc_connect_button = panel.mpc_connect_button
 
-        layout.addWidget(QLabel("Napięcie aktualne:"), 0, 0)
-        layout.addWidget(self.mdt_current_voltage_label, 0, 1, 1, 2)
+        for index in (1, 2):
+            setattr(self, f"mpc{index}_left_large_button", getattr(panel, f"mpc{index}_left_large_button"))
+            setattr(self, f"mpc{index}_left_medium_button", getattr(panel, f"mpc{index}_left_medium_button"))
+            setattr(self, f"mpc{index}_left_small_button", getattr(panel, f"mpc{index}_left_small_button"))
+            setattr(self, f"mpc{index}_position_label", getattr(panel, f"mpc{index}_position_label"))
+            setattr(self, f"mpc{index}_target_spinbox", getattr(panel, f"mpc{index}_target_spinbox"))
+            setattr(self, f"mpc{index}_set_button", getattr(panel, f"mpc{index}_set_button"))
+            setattr(self, f"mpc{index}_right_small_button", getattr(panel, f"mpc{index}_right_small_button"))
+            setattr(self, f"mpc{index}_right_medium_button", getattr(panel, f"mpc{index}_right_medium_button"))
+            setattr(self, f"mpc{index}_right_large_button", getattr(panel, f"mpc{index}_right_large_button"))
 
-        layout.addWidget(QLabel("Napięcie zadane:"), 1, 0)
-        layout.addWidget(self.mdt_setpoint_spinbox, 1, 1)
-        layout.addWidget(self.mdt_set_button, 1, 2)
-
-        layout.addWidget(QLabel("Status:"), 2, 0)
-        layout.addWidget(self.mdt_status_label, 2, 1, 1, 2)
-
-        self.mdt_connect_button = QPushButton("Połącz")
-        self.mdt_port_combo.setSizePolicy(
-            QSizePolicy.Policy.Expanding,
-            QSizePolicy.Policy.Fixed,
-        )
-
-        layout.addWidget(QLabel("Port:"), 3, 0)
-        layout.addWidget(self.mdt_port_combo, 3, 1)
-        layout.addWidget(self.mdt_refresh_ports_button, 3, 2)
-        layout.addWidget(self.mdt_connect_button, 3, 3)
-
-        return group
-
-    def _create_mpc_panel(self) -> QGroupBox:
-        group = QGroupBox("MPC220 — kontroler polaryzacji")
-        layout = QVBoxLayout(group)
-
-        self.mpc_status_label = QLabel("Niepołączony")
-        layout.addWidget(QLabel("Status:"))
-        layout.addWidget(self.mpc_status_label)
-
-        layout.addWidget(self._create_paddle_panel(1))
-        layout.addWidget(self._create_paddle_panel(2))
-
-        port_layout = QHBoxLayout()
-        port_layout.addWidget(QLabel("Port:"))
-        self.mpc_port_combo = QComboBox()
-        self.mpc_port_combo.setSizePolicy(
-            QSizePolicy.Policy.Expanding,
-            QSizePolicy.Policy.Fixed,
-        )
-        port_layout.addWidget(self.mpc_port_combo)
-        self.mpc_refresh_ports_button = QPushButton("Odśwież porty")
-        port_layout.addWidget(self.mpc_refresh_ports_button)
-        self.mpc_connect_button = QPushButton("Połącz")
-        port_layout.addWidget(self.mpc_connect_button)
-        port_layout.addStretch()
-
-        layout.addLayout(port_layout)
-        layout.addStretch()
-
-        return group
-
-    def _create_paddle_panel(self, paddle_number: int) -> QGroupBox:
-        group = QGroupBox(f"Łopatka {paddle_number}")
-        layout = QGridLayout(group)
-
-        left_large = QPushButton("-10°")
-        left_medium = QPushButton("-5°")
-        left_small = QPushButton("-1°")
-        position_label = QLabel("—")
-        target_spinbox = QDoubleSpinBox()
-        target_spinbox.setDecimals(0)
-        target_spinbox.setRange(1, 160)
-        target_spinbox.setSuffix("°")
-        set_button = QPushButton("Ustaw")
-        right_small = QPushButton("+1°")
-        right_medium = QPushButton("+5°")
-        right_large = QPushButton("+10°")
-
-        setattr(self, f"mpc{paddle_number}_left_large_button", left_large)
-        setattr(self, f"mpc{paddle_number}_left_medium_button", left_medium)
-        setattr(self, f"mpc{paddle_number}_left_small_button", left_small)
-        setattr(self, f"mpc{paddle_number}_position_label", position_label)
-        setattr(self, f"mpc{paddle_number}_target_spinbox", target_spinbox)
-        setattr(self, f"mpc{paddle_number}_set_button", set_button)
-        setattr(self, f"mpc{paddle_number}_right_small_button", right_small)
-        setattr(self, f"mpc{paddle_number}_right_medium_button", right_medium)
-        setattr(self, f"mpc{paddle_number}_right_large_button", right_large)
-
-        move_layout = QHBoxLayout()
-        move_layout.addWidget(left_large)
-        move_layout.addWidget(left_medium)
-        move_layout.addWidget(left_small)
-        move_layout.addStretch()
-        move_layout.addWidget(right_small)
-        move_layout.addWidget(right_medium)
-        move_layout.addWidget(right_large)
-
-        layout.addLayout(move_layout, 0, 0, 1, 3)
-        layout.addWidget(QLabel("Aktualna pozycja:"), 1, 0)
-        layout.addWidget(position_label, 1, 1, 1, 2)
-        layout.addWidget(QLabel("Pozycja docelowa:"), 2, 0)
-        layout.addWidget(target_spinbox, 2, 1)
-        layout.addWidget(set_button, 2, 2)
-
-        return group
+        return panel
 
     def _create_measurement_column(self) -> QWidget:
-        container = QWidget()
-        layout = QVBoxLayout(container)
-
-        self.ads1263_panel = self._create_plot_panel()
-        layout.addWidget(self.ads1263_panel)
-        layout.addLayout(self._create_measurement_buttons())
-        layout.addWidget(self._create_log_panel())
-
-        return container
-
-    def _create_plot_panel(self) -> QGroupBox:
-        group = QGroupBox("ADS1263")
-        layout = QVBoxLayout(group)
-
-        self.plot_widget = pg.PlotWidget()
-        self.plot_widget.setBackground("w")
-        self.plot_widget.setLabel("bottom", "Czas [s]")
-        self.plot_widget.setLabel("left", "Napięcie [V]")
-        self.plot_widget.addLegend(offset=(10, 10))
-        self.plot_widget.showGrid(x=True, y=True)
-
-        self.in0_curve = self.plot_widget.plot(
-            [], [],
-            pen=pg.mkPen(color="#1f77b4", width=2),
-            name="IN0",
-        )
-        self.in1_curve = self.plot_widget.plot(
-            [], [],
-            pen=pg.mkPen(color="#ff7f0e", width=2),
-            name="IN1",
-        )
-
-        layout.addWidget(self.plot_widget)
-
-        return group
-
-    def _create_measurement_buttons(self) -> QHBoxLayout:
-        layout = QHBoxLayout()
-
-        self.measurement_start_button = QPushButton("Rozpocznij pomiar")
-        self.measurement_stop_button = QPushButton("Zatrzymaj pomiar")
-        self.plot_clear_button = QPushButton("Wyczyść wykres")
-        self.data_save_button = QPushButton("Zapisz dane")
-
-        self.plot_clear_button.clicked.connect(self._clear_plot)
-
-        layout.addWidget(self.measurement_start_button)
-        layout.addWidget(self.measurement_stop_button)
-        layout.addWidget(self.plot_clear_button)
-        layout.addWidget(self.data_save_button)
-        layout.addStretch()
-
-        return layout
-
-    def _create_log_panel(self) -> QGroupBox:
-        group = QGroupBox("Logi")
-        layout = QVBoxLayout(group)
-
-        self.log_output = QPlainTextEdit()
-        self.log_output.setReadOnly(True)
-        self.log_output.setSizePolicy(
-            QSizePolicy.Policy.Expanding,
-            QSizePolicy.Policy.Expanding,
-        )
-        self.log_clear_button = QPushButton("Wyczyść log")
-        self.log_clear_button.clicked.connect(self.log_output.clear)
-
-        layout.addWidget(self.log_output)
-        layout.addWidget(
-            self.log_clear_button,
-            alignment=Qt.AlignmentFlag.AlignRight,
-        )
-
-        return group
+        self.measurement_panel = MeasurementPanel()
+        self.ads1263_panel = self.measurement_panel.ads1263_panel
+        self.plot_widget = self.measurement_panel.plot_widget
+        self.in0_curve = self.measurement_panel.in0_curve
+        self.in1_curve = self.measurement_panel.in1_curve
+        self.measurement_start_button = self.measurement_panel.measurement_start_button
+        self.measurement_stop_button = self.measurement_panel.measurement_stop_button
+        self.plot_clear_button = self.measurement_panel.plot_clear_button
+        self.data_save_button = self.measurement_panel.data_save_button
+        self.log_panel = self.measurement_panel.log_panel
+        self.log_output = self.measurement_panel.log_output
+        self.log_clear_button = self.measurement_panel.log_clear_button
+        self.append_log = self.measurement_panel.append_log
+        self.clear_log = self.measurement_panel.clear_log
+        self._clear_plot = self.measurement_panel.clear_plot
+        return self.measurement_panel
 
     def _clear_plot(self) -> None:
         self.in0_curve.setData([], [])
@@ -262,3 +115,6 @@ class MainWindow(QMainWindow):
 
     def append_log(self, message: str) -> None:
         self.log_output.appendPlainText(message)
+
+    def clear_log(self) -> None:
+        self.log_output.clear()
