@@ -1,14 +1,24 @@
-13:24:21 | INFO | modules.tc200.controller | Odświeżono listę portów szeregowych
-13:24:26 | INFO | modules.tc200.controller | Łączenie z TC200 na /dev/ttyUSB0
-13:24:26 | INFO | modules.tc200.controller | Połączono z THORLABS TC200 VERSION 2.0
-13:24:33 | ERROR | modules.tc200.controller | Nie udało się zmienić stanu grzania TC200
+13:14:36 | ERROR | modules.measurement.controller | Nie udało się uruchomić pomiaru ADS1263
 Traceback (most recent call last):
-  File "/home/malina/APPv2/modules/tc200/controller.py", line 68, in set_heater
-    status = self._require_driver().set_heater(enabled)
-  File "/home/malina/APPv2/modules/tc200/driver.py", line 185, in set_heater
-    self.send_command("ens")
-    ~~~~~~~~~~~~~~~~~^^^^^^^
-  File "/home/malina/APPv2/modules/tc200/driver.py", line 127, in send_command
-    raise TC200ResponseError(f"Pusta odpowiedź na komendę {normalized!r}.")
-modules.tc200.driver.TC200ResponseError: Pusta odpowiedź na komendę 'ens'.
-13:24:33 | ERROR | modules.tc200.controller | TC200: Pusta odpowiedź na komendę 'ens'.
+  File "/home/malina/APPv2/modules/measurement/driver.py", line 30, in connect
+    config.module_init()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/home/malina/APPv2/modules/measurement/vendor/config.py", line 83, in module_init
+    return _get_backend().module_init()
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/malina/APPv2/modules/measurement/vendor/config.py", line 56, in module_init
+    self.GPIO.setup(self.__class__.RST_PIN, self.GPIO.OUT)
+                    ^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: type object '_Hardware' has no attribute 'RST_PIN'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/malina/APPv2/modules/measurement/controller.py", line 38, in start_measurement
+    self._driver.connect()
+    ~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/malina/APPv2/modules/measurement/driver.py", line 32, in connect
+    raise RuntimeError(f"Nie udało się zainicjalizować GPIO/SPI ADS1263: {exc}") from exc
+RuntimeError: Nie udało się zainicjalizować GPIO/SPI ADS1263: type object '_Hardware' has no attribute 'RST_PIN'
+ADS1263: Nie udało się zainicjalizować GPIO/SPI ADS1263: type object '_Hardware' has no attribute 'RST_PIN'
+13:14:36 | ERROR | modules.measurement.controller | ADS1263: Nie udało się zainicjalizować GPIO/SPI ADS1263: type object '_Hardware' has no attribute 'RST_PIN'

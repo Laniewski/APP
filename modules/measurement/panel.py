@@ -3,6 +3,7 @@
 import pyqtgraph as pg
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
+    QFileDialog,
     QGroupBox,
     QHBoxLayout,
     QPushButton,
@@ -27,6 +28,7 @@ class MeasurementPanel(QWidget):
         self.plot_widget.setLabel("left", "Napięcie [V]")
         self.plot_widget.addLegend(offset=(10, 10))
         self.plot_widget.showGrid(x=True, y=True)
+        self.plot_widget.setXRange(0, 20, padding=0)
 
         self.in0_curve = self.plot_widget.plot(
             [], [],
@@ -47,6 +49,8 @@ class MeasurementPanel(QWidget):
         self.log_clear_button = self.log_panel.log_clear_button
         layout.addWidget(self.log_panel)
 
+        self.set_measurement_running(False)
+
     def _create_measurement_buttons(self) -> QHBoxLayout:
         layout = QHBoxLayout()
 
@@ -65,12 +69,38 @@ class MeasurementPanel(QWidget):
 
         return layout
 
+    def set_measurement_running(self, running: bool) -> None:
+        self.measurement_start_button.setEnabled(not running)
+        self.measurement_stop_button.setEnabled(running)
+
+    def update_plot(self, times, in0_values, in1_values) -> None:
+        self.in0_curve.setData(times, in0_values)
+        self.in1_curve.setData(times, in1_values)
+        if times:
+            max_time = max(times)
+            self.plot_widget.setXRange(max(0.0, max_time - 20.0), max_time + 0.5, padding=0)
+            self.plot_widget.enableAutoRange(axis="y")
+
     def clear_plot(self) -> None:
         self.in0_curve.setData([], [])
         self.in1_curve.setData([], [])
+        self.plot_widget.setXRange(0, 20, padding=0)
 
     def append_log(self, message: str) -> None:
         self.log_panel.append_log(message)
 
     def clear_log(self) -> None:
         self.log_panel.clear_log()
+
+    def show_error(self, message: str) -> None:
+        self.append_log(message)
+
+    def choose_save_path(self, callback) -> None:
+        path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Zapisz dane pomiarowe",
+            "",
+            "Pliki CSV (*.csv)",
+        )
+        if path:
+            callback(path)
