@@ -1,88 +1,111 @@
-"""GUI kontrolera MPC220."""
+"""Panel MPC220 emitujący wyłącznie intencje użytkownika."""
 
-from PySide6.QtWidgets import (
-    QComboBox,
-    QDoubleSpinBox,
-    QGridLayout,
-    QGroupBox,
-    QHBoxLayout,
-    QLabel,
-    QPushButton,
-    QSizePolicy,
-    QVBoxLayout,
-)
+from functools import partial
+
+from PySide6.QtCore import Signal
+from PySide6.QtWidgets import (QComboBox, QDoubleSpinBox, QGridLayout,
+                               QGroupBox, QHBoxLayout, QLabel, QPushButton,
+                               QVBoxLayout)
 
 
 class MPC220Panel(QGroupBox):
+    refresh_requested = Signal()
+    connect_requested = Signal(str)
+    disconnect_requested = Signal()
+    set_angle_requested = Signal(int, float)
+    adjust_angle_requested = Signal(int, float)
+
     def __init__(self) -> None:
         super().__init__("MPC220 — kontroler polaryzacji")
         layout = QVBoxLayout(self)
+        ports = QHBoxLayout()
+        self.port_combo = QComboBox()
+        self.refresh_button = QPushButton("Odśwież")
+        self.connect_button = QPushButton("Połącz")
+        self.disconnect_button = QPushButton("Rozłącz")
+        ports.addWidget(QLabel("Port:"))
+        ports.addWidget(self.port_combo, 1)
+        ports.addWidget(self.refresh_button)
+        ports.addWidget(self.connect_button)
+        ports.addWidget(self.disconnect_button)
+        layout.addLayout(ports)
+        self._movement_widgets = []
+        for paddle in (1, 2):
+            layout.addWidget(self._create_paddle_panel(paddle))
+        self.refresh_button.clicked.connect(self.refresh_requested)
+        self.connect_button.clicked.connect(self._request_connect)
+        self.disconnect_button.clicked.connect(self.disconnect_requested)
+        self._connected = False
+        self._busy = False
+        self.set_connected(False)
 
-        self.mpc_status_label = QLabel("Niepołączony")
-        layout.addWidget(QLabel("Status:"))
-        layout.addWidget(self.mpc_status_label)
-
-        layout.addWidget(self._create_paddle_panel(1))
-        layout.addWidget(self._create_paddle_panel(2))
-
-        port_layout = QHBoxLayout()
-        port_layout.addWidget(QLabel("Port:"))
-        self.mpc_port_combo = QComboBox()
-        self.mpc_port_combo.setSizePolicy(
-            QSizePolicy.Policy.Expanding,
-            QSizePolicy.Policy.Fixed,
-        )
-        port_layout.addWidget(self.mpc_port_combo)
-        self.mpc_refresh_ports_button = QPushButton("Odśwież porty")
-        port_layout.addWidget(self.mpc_refresh_ports_button)
-        self.mpc_connect_button = QPushButton("Połącz")
-        port_layout.addWidget(self.mpc_connect_button)
-        port_layout.addStretch()
-
-        layout.addLayout(port_layout)
-        layout.addStretch()
-
-    def _create_paddle_panel(self, paddle_number: int) -> QGroupBox:
-        group = QGroupBox(f"Łopatka {paddle_number}")
+    def _create_paddle_panel(self, paddle: int) -> QGroupBox:
+        group = QGroupBox(f"Łopatka {paddle}")
         layout = QGridLayout(group)
-
-        left_large = QPushButton("-10°")
-        left_medium = QPushButton("-5°")
-        left_small = QPushButton("-1°")
-        position_label = QLabel("—")
-        target_spinbox = QDoubleSpinBox()
-        target_spinbox.setDecimals(0)
-        target_spinbox.setRange(1, 160)
-        target_spinbox.setSuffix("°")
+        position = QLabel("—")
+        target = QDoubleSpinBox()
+        target.setRange(1, 160)
+        target.setDecimals(0)
+        target.setSuffix("°")
         set_button = QPushButton("Ustaw")
-        right_small = QPushButton("+1°")
-        right_medium = QPushButton("+5°")
-        right_large = QPushButton("+10°")
-
-        setattr(self, f"mpc{paddle_number}_left_large_button", left_large)
-        setattr(self, f"mpc{paddle_number}_left_medium_button", left_medium)
-        setattr(self, f"mpc{paddle_number}_left_small_button", left_small)
-        setattr(self, f"mpc{paddle_number}_position_label", position_label)
-        setattr(self, f"mpc{paddle_number}_target_spinbox", target_spinbox)
-        setattr(self, f"mpc{paddle_number}_set_button", set_button)
-        setattr(self, f"mpc{paddle_number}_right_small_button", right_small)
-        setattr(self, f"mpc{paddle_number}_right_medium_button", right_medium)
-        setattr(self, f"mpc{paddle_number}_right_large_button", right_large)
-
-        move_layout = QHBoxLayout()
-        move_layout.addWidget(left_large)
-        move_layout.addWidget(left_medium)
-        move_layout.addWidget(left_small)
-        move_layout.addStretch()
-        move_layout.addWidget(right_small)
-        move_layout.addWidget(right_medium)
-        move_layout.addWidget(right_large)
-
-        layout.addLayout(move_layout, 0, 0, 1, 3)
+        steps = QHBoxLayout()
+        for delta in (-10, -5, -1, 1, 5, 10):
+            button = QPushButton(f"{delta:+d}°")
+            button.clicked.connect(partial(self.adjust_angle_requested.emit, paddle, float(delta)))
+            steps.addWidget(button)
+            self._movement_widgets.append(button)
+        set_button.clicked.connect(
+            lambda _checked=False, p=paddle, field=target:
+            self.set_angle_requested.emit(p, field.value())
+        )
+        setattr(self, f"position_{paddle}", position)
+        setattr(self, f"target_{paddle}", target)
+        layout.addLayout(steps, 0, 0, 1, 3)
         layout.addWidget(QLabel("Aktualna pozycja:"), 1, 0)
-        layout.addWidget(position_label, 1, 1, 1, 2)
+        layout.addWidget(position, 1, 1, 1, 2)
         layout.addWidget(QLabel("Pozycja docelowa:"), 2, 0)
-        layout.addWidget(target_spinbox, 2, 1)
+        layout.addWidget(target, 2, 1)
         layout.addWidget(set_button, 2, 2)
-
+        self._movement_widgets.extend((target, set_button))
         return group
+
+    def _request_connect(self) -> None:
+        port = self.port_combo.currentData()
+        self.connect_requested.emit(port if isinstance(port, str) else "")
+
+    def set_ports(self, ports) -> None:
+        selected = self.port_combo.currentData()
+        self.port_combo.clear()
+        for port in ports:
+            self.port_combo.addItem(f"{port.device} — {port.description}", port.device)
+        if not ports:
+            self.port_combo.addItem("Brak dostępnych portów", None)
+        index = self.port_combo.findData(selected)
+        if index >= 0:
+            self.port_combo.setCurrentIndex(index)
+        self._apply_state()
+
+    def set_connected(self, connected: bool) -> None:
+        self._connected = connected
+        self._busy = False
+        self._apply_state()
+
+    def set_busy(self, busy: bool) -> None:
+        self._busy = busy
+        self._apply_state()
+
+    def _apply_state(self) -> None:
+        has_port = self.port_combo.currentData() is not None
+        self.port_combo.setEnabled(not self._connected and not self._busy and has_port)
+        self.refresh_button.setEnabled(not self._connected and not self._busy)
+        self.connect_button.setEnabled(not self._connected and not self._busy and has_port)
+        self.disconnect_button.setEnabled(self._connected and not self._busy)
+        for widget in self._movement_widgets:
+            widget.setEnabled(self._connected and not self._busy)
+
+    def show_position(self, paddle_number: int, angle_deg: float) -> None:
+        getattr(self, f"position_{paddle_number}").setText(f"{angle_deg:.1f}°")
+
+    def show_error(self, message: str) -> None:
+        # Panel celowo nie ma globalnego statusu; błąd jest dostępny jako tooltip.
+        self.setToolTip(f"Błąd komunikacji: {message}")

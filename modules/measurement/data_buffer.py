@@ -30,11 +30,16 @@ class DataBuffer:
     def get_visible_data(self, window_seconds: float = 20.0) -> tuple[list[float], list[float], list[float]]:
         if window_seconds <= 0:
             return [], [], []
-        boundary = float(window_seconds)
+
+        if not self.times:
+            return [], [], []
+
+        latest_time = float(self.times[-1])
+        window_start = max(0.0, latest_time - float(window_seconds))
         filtered = [
             (t, i0, i1)
             for t, i0, i1 in zip(self.times, self.in0_values, self.in1_values)
-            if t >= 0.0 and t <= boundary
+            if t >= window_start and t <= latest_time
         ]
         if not filtered:
             return [], [], []

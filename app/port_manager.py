@@ -10,6 +10,8 @@ from serial.tools import list_ports as serial_list_ports
 class PortInfo:
     device: str
     description: str
+    vid: int | None = None
+    pid: int | None = None
 
 
 class PortManager:
@@ -20,7 +22,12 @@ class PortManager:
 
     def list_ports(self) -> list[PortInfo]:
         return [
-            PortInfo(port.device, port.description or "Nieznane urządzenie")
+            PortInfo(
+                port.device,
+                port.description or "Nieznane urządzenie",
+                getattr(port, "vid", None),
+                getattr(port, "pid", None),
+            )
             for port in self._port_provider()
         ]
 

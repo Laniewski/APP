@@ -53,9 +53,9 @@ def _get_backend() -> Any:
         def module_init(self) -> int:
             self.GPIO.setmode(self.GPIO.BCM)
             self.GPIO.setwarnings(False)
-            self.GPIO.setup(self.__class__.RST_PIN, self.GPIO.OUT)
-            self.GPIO.setup(self.__class__.CS_PIN, self.GPIO.OUT)
-            self.GPIO.setup(self.__class__.DRDY_PIN, self.GPIO.IN, pull_up_down=self.GPIO.PUD_UP)
+            self.GPIO.setup(RST_PIN, self.GPIO.OUT)
+            self.GPIO.setup(CS_PIN, self.GPIO.OUT)
+            self.GPIO.setup(DRDY_PIN, self.GPIO.IN, pull_up_down=self.GPIO.PUD_UP)
             self.SPI.max_speed_hz = 2000000
             self.SPI.mode = 0b01
             return 0
@@ -84,10 +84,14 @@ def module_init() -> int:
 
 
 def module_exit() -> None:
+    global _backend
+    backend = _backend
+    if backend is None:
+        return
     try:
-        _get_backend().module_exit()
-    except RuntimeError:
-        pass
+        backend.module_exit()
+    finally:
+        _backend = None
 
 
 def digital_write(pin: int, value: int) -> None:

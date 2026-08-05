@@ -85,8 +85,3 @@ class ADS1263Driver:
             except Exception:
                 pass
             self._adc = None
-        try:
-            from modules.measurement.vendor import config
-            config.module_exit()
-        except Exception:
-            pass

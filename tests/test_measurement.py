@@ -3,15 +3,18 @@ import tempfile
 import threading
 import time
 import unittest
+from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QTimer, QEventLoop
 from PySide6.QtWidgets import QApplication
 
-from modules.measurement.controller import MeasurementController
+from modules.measurement.controller import MeasurementController, MeasurementWorker
 from modules.measurement.data_buffer import DataBuffer
+from modules.measurement.driver import ADS1263Driver
 from modules.measurement.panel import MeasurementPanel
+import modules.measurement.vendor.config as measurement_config
 
 
 class FakeDriver:
@@ -58,13 +61,75 @@ class DataBufferTests(unittest.TestCase):
         buffer.clear()
         self.assertEqual(buffer.get_all_data(), ([], [], []))
 
-    def test_visible_window_is_limited_to_20_seconds(self):
+    def test_visible_window_tracks_last_20_seconds(self):
         buffer = DataBuffer()
         for offset in (0.0, 5.0, 10.0, 30.0):
             buffer.add_sample(offset, offset, offset + 1)
         visible = buffer.get_visible_data(window_seconds=20.0)
-        self.assertEqual(len(visible[0]), 3)
-        self.assertEqual(visible[0][-1], 10.0)
+        self.assertEqual(visible[0], [10.0, 30.0])
+        self.assertEqual(visible[1], [10.0, 30.0])
+        self.assertEqual(visible[2], [11.0, 31.0])
+
+    def test_working_backend_is_reset_after_close(self):
+        class FakeBackend:
+            def module_exit(self):
+                pass
+
+        measurement_config._backend = FakeBackend()
+        measurement_config.module_exit()
+        self.assertIsNone(measurement_config._backend)
+
+    def test_worker_can_restart_after_failed_start(self):
+        attempts = {"count": 0}
+
+        class FailingThenWorkingDriver:
+            def connect(self):
+                attempts["count"] += 1
+                if attempts["count"] == 1:
+                    raise RuntimeError("boom")
+
+            def start_measurement(self):
+                pass
+
+            def read_sample(self):
+                return 1.0, 2.0
+
+            def stop_measurement(self):
+                pass
+
+            def close(self):
+                pass
+
+        worker = MeasurementWorker(lambda: FailingThenWorkingDriver(), sample_interval_ms=5)
+        finished_events = []
+        errors = []
+        worker.finished.connect(lambda: finished_events.append("finished"))
+        worker.error.connect(errors.append)
+
+        worker.start_measurement()
+        self.assertEqual(len(finished_events), 0)
+        self.assertEqual(len(errors), 1)
+        self.assertFalse(worker._running)
+
+        worker.start_measurement()
+        self.assertTrue(worker._running)
+
+    def test_driver_close_does_not_double_close_backend(self):
+        class FakeADC:
+            def __init__(self):
+                self.module_exit_calls = 0
+
+            def module_exit(self):
+                self.module_exit_calls += 1
+
+        fake_driver = ADS1263Driver()
+        fake_backend = FakeADC()
+        fake_driver._adc = fake_backend
+
+        fake_driver.close()
+
+        self.assertEqual(fake_backend.module_exit_calls, 1)
+        self.assertIsNone(fake_driver._adc)
 
 
 class MeasurementControllerTests(unittest.TestCase):
@@ -140,6 +205,129 @@ class MeasurementControllerTests(unittest.TestCase):
             self.assertIn("ADS1263: Na tym komputerze brakuje wsparcia", panel.log_output.toPlainText())
         finally:
             controller.shutdown(timeout_ms=500)
+
+    def test_panel_auto_mode_is_enabled_by_default(self):
+        panel = MeasurementPanel()
+        self.assertTrue(panel._auto_view_enabled)
+        self.assertEqual(panel.auto_view_button.text(), "Auto: WŁ.")
+
+    def test_panel_auto_range_for_recent_time(self):
+        panel = MeasurementPanel()
+        panel.in0_curve.setData([0.0, 5.0, 12.0], [1.0, 2.0, 3.0])
+        panel.in1_curve.setData([0.0, 5.0, 12.0], [5.0, 4.0, 3.0])
+        panel._apply_auto_view()
+        x_min, x_max = panel.plot_widget.getViewBox().viewRange()[0]
+        self.assertAlmostEqual(x_min, 0.0, delta=1e-6)
+        self.assertAlmostEqual(x_max, 20.0, delta=1e-6)
+
+    def test_panel_auto_range_for_latest_time_over_20_seconds(self):
+        panel = MeasurementPanel()
+        panel.in0_curve.setData([0.0, 10.0, 35.0], [1.0, 2.0, 3.0])
+        panel.in1_curve.setData([0.0, 10.0, 35.0], [5.0, 4.0, 3.0])
+        panel._apply_auto_view()
+        x_min, x_max = panel.plot_widget.getViewBox().viewRange()[0]
+        self.assertAlmostEqual(x_min, 15.0, delta=0.05)
+        self.assertAlmostEqual(x_max, 35.0, delta=0.05)
+
+    def test_manual_range_disables_auto_and_is_preserved(self):
+        panel = MeasurementPanel()
+        panel._set_auto_view_enabled(False)
+        panel.plot_widget.setXRange(2.0, 7.0, padding=0)
+        panel.update_plot([0.0, 100.0], [0.0, 1.0], [0.0, 1.0])
+        x_min, x_max = panel.plot_widget.getViewBox().viewRange()[0]
+        self.assertAlmostEqual(x_min, 2.0, delta=0.05)
+        self.assertAlmostEqual(x_max, 7.0, delta=0.05)
+        self.assertFalse(panel._auto_view_enabled)
+
+    def test_auto_button_restores_auto_range(self):
+        panel = MeasurementPanel()
+        panel._set_auto_view_enabled(False)
+        panel.plot_widget.setXRange(2.0, 7.0, padding=0)
+        panel._toggle_auto_view()
+        x_min, x_max = panel.plot_widget.getViewBox().viewRange()[0]
+        self.assertAlmostEqual(x_min, 0.0, delta=1e-6)
+        self.assertAlmostEqual(x_max, 20.0, delta=1e-6)
+        self.assertTrue(panel._auto_view_enabled)
+
+    def test_clear_plot_restores_auto_and_default_range(self):
+        panel = MeasurementPanel()
+        panel._set_auto_view_enabled(False)
+        panel.plot_widget.setXRange(2.0, 7.0, padding=0)
+        panel.clear_plot()
+        x_min, x_max = panel.plot_widget.getViewBox().viewRange()[0]
+        self.assertAlmostEqual(x_min, 0.0, delta=1e-6)
+        self.assertAlmostEqual(x_max, 20.0, delta=1e-6)
+        self.assertTrue(panel._auto_view_enabled)
+
+    def test_plot_background_is_dark(self):
+        panel = MeasurementPanel()
+        self.assertEqual(panel.plot_widget._dark_background, "#0b0f14")
+
+    def test_buffer_keeps_full_history_even_when_auto_window_is_20s(self):
+        buffer = DataBuffer()
+        for offset in range(0, 61, 10):
+            buffer.add_sample(float(offset), float(offset), float(offset + 1))
+        times, in0, in1 = buffer.get_all_data()
+        self.assertEqual(len(times), 7)
+        self.assertEqual(times[0], 0.0)
+        self.assertEqual(times[-1], 60.0)
+        self.assertEqual(len(in0), 7)
+        self.assertEqual(len(in1), 7)
+
+    def test_update_plot_receives_full_history_and_auto_view_is_windowed(self):
+        panel = MeasurementPanel()
+        panel._set_auto_view_enabled(True)
+        times = [0.0, 10.0, 20.0, 40.0, 60.0]
+        in0 = [0.0, 1.0, 2.0, 3.0, 4.0]
+        in1 = [10.0, 11.0, 12.0, 13.0, 14.0]
+        panel.update_plot(times, in0, in1)
+        self.assertEqual(len(panel.in0_curve.getData()[0]), 5)
+        self.assertEqual(len(panel.in1_curve.getData()[0]), 5)
+        x_min, x_max = panel.plot_widget.getViewBox().viewRange()[0]
+        self.assertAlmostEqual(x_min, 40.0, delta=0.05)
+        self.assertAlmostEqual(x_max, 60.0, delta=0.05)
+
+    def test_manual_range_keeps_full_history_and_ignores_auto_updates(self):
+        panel = MeasurementPanel()
+        panel._set_auto_view_enabled(False)
+        panel.plot_widget.setXRange(0.0, 60.0, padding=0)
+        panel.update_plot([0.0, 20.0, 40.0, 60.0], [1.0, 2.0, 3.0, 4.0], [10.0, 11.0, 12.0, 13.0])
+        x_min, x_max = panel.plot_widget.getViewBox().viewRange()[0]
+        self.assertAlmostEqual(x_min, 0.0, delta=0.05)
+        self.assertAlmostEqual(x_max, 60.0, delta=0.05)
+        self.assertEqual(len(panel.in0_curve.getData()[0]), 4)
+        self.assertFalse(panel._auto_view_enabled)
+
+    def test_auto_recovery_keeps_history_but_restores_window(self):
+        panel = MeasurementPanel()
+        panel._set_auto_view_enabled(False)
+        panel.plot_widget.setXRange(0.0, 60.0, padding=0)
+        panel.update_plot([0.0, 20.0, 40.0, 60.0], [1.0, 2.0, 3.0, 4.0], [10.0, 11.0, 12.0, 13.0])
+        panel._toggle_auto_view()
+        x_min, x_max = panel.plot_widget.getViewBox().viewRange()[0]
+        self.assertAlmostEqual(x_min, 40.0, delta=0.05)
+        self.assertAlmostEqual(x_max, 60.0, delta=0.05)
+        self.assertEqual(len(panel.in0_curve.getData()[0]), 4)
+
+    def test_csv_export_keeps_full_history_even_if_window_is_narrow(self):
+        fake_path = os.path.join(tempfile.gettempdir(), "measurement_full_history.csv")
+        if os.path.exists(fake_path):
+            os.remove(fake_path)
+        controller = MeasurementController(MeasurementPanel(), driver_factory=lambda: FakeDriver(), sample_interval_ms=10)
+        try:
+            for offset in range(0, 61, 10):
+                controller.buffer.add_sample(float(offset), float(offset), float(offset + 1))
+            controller.panel._set_auto_view_enabled(False)
+            controller.panel.plot_widget.setXRange(10.0, 20.0, padding=0)
+            controller.save_csv(fake_path)
+            with open(fake_path, "r", encoding="utf-8") as handle:
+                rows = handle.read().strip().splitlines()
+            self.assertGreater(len(rows), 1)
+            self.assertEqual(len(rows) - 1, len(controller.buffer.get_all_data()[0]))
+        finally:
+            controller.shutdown(timeout_ms=500)
+            if os.path.exists(fake_path):
+                os.remove(fake_path)
 
     def test_panel_states_and_error(self):
         panel = MeasurementPanel()

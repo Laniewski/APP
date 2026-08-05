@@ -1,48 +1,99 @@
-"""GUI kontrolera MDT694B."""
+"""Panel GUI kontrolera piezo MDT694B."""
 
-from PySide6.QtWidgets import (
-    QComboBox,
-    QDoubleSpinBox,
-    QGridLayout,
-    QGroupBox,
-    QLabel,
-    QPushButton,
-    QSizePolicy,
-)
+from PySide6.QtCore import Signal
+from PySide6.QtWidgets import QComboBox, QDoubleSpinBox, QGridLayout, QGroupBox, QLabel, QPushButton
 
 
 class MDT694BPanel(QGroupBox):
+    refresh_requested = Signal()
+    connect_requested = Signal(str)
+    disconnect_requested = Signal()
+    set_voltage_requested = Signal(float)
+
     def __init__(self) -> None:
         super().__init__("MDT694B — sterownik piezo")
         layout = QGridLayout(self)
-
-        self.mdt_current_voltage_label = QLabel("— V")
-        self.mdt_setpoint_spinbox = QDoubleSpinBox()
-        self.mdt_setpoint_spinbox.setDecimals(3)
-        self.mdt_setpoint_spinbox.setRange(0.0, 150.0)
-        self.mdt_setpoint_spinbox.setSuffix(" V")
-        self.mdt_set_button = QPushButton("Ustaw napięcie")
-        self.mdt_status_label = QLabel("Niepołączony")
+        self.mdt_port_label = QLabel("Port:")
         self.mdt_port_combo = QComboBox()
-        self.mdt_refresh_ports_button = QPushButton("Odśwież porty")
-
-        layout.addWidget(QLabel("Napięcie aktualne:"), 0, 0)
-        layout.addWidget(self.mdt_current_voltage_label, 0, 1, 1, 2)
-
-        layout.addWidget(QLabel("Napięcie zadane:"), 1, 0)
-        layout.addWidget(self.mdt_setpoint_spinbox, 1, 1)
-        layout.addWidget(self.mdt_set_button, 1, 2)
-
-        layout.addWidget(QLabel("Status:"), 2, 0)
-        layout.addWidget(self.mdt_status_label, 2, 1, 1, 2)
-
+        self.mdt_refresh_ports_button = QPushButton("Odśwież")
         self.mdt_connect_button = QPushButton("Połącz")
-        self.mdt_port_combo.setSizePolicy(
-            QSizePolicy.Policy.Expanding,
-            QSizePolicy.Policy.Fixed,
+        self.mdt_disconnect_button = QPushButton("Rozłącz")
+        self.mdt_actual_voltage_label = QLabel("— V")
+        self.mdt_voltage_input = QDoubleSpinBox()
+        self.mdt_voltage_input.setDecimals(2)
+        self.mdt_voltage_input.setSingleStep(0.1)
+        self.mdt_voltage_input.setRange(0.0, 150.0)
+        self.mdt_voltage_input.setSuffix(" V")
+        self.mdt_set_button = QPushButton("Ustaw napięcie")
+        self.mdt_status_label = QLabel("Rozłączono")
+        layout.addWidget(self.mdt_port_label, 0, 0)
+        layout.addWidget(self.mdt_port_combo, 0, 1)
+        layout.addWidget(self.mdt_refresh_ports_button, 0, 2)
+        layout.addWidget(self.mdt_connect_button, 0, 3)
+        layout.addWidget(self.mdt_disconnect_button, 0, 4)
+        layout.addWidget(QLabel("Napięcie aktualne:"), 1, 0)
+        layout.addWidget(self.mdt_actual_voltage_label, 1, 1, 1, 4)
+        layout.addWidget(QLabel("Napięcie zadane:"), 2, 0)
+        layout.addWidget(self.mdt_voltage_input, 2, 1, 1, 2)
+        layout.addWidget(self.mdt_set_button, 2, 3, 1, 2)
+        layout.addWidget(QLabel("Status:"), 3, 0)
+        layout.addWidget(self.mdt_status_label, 3, 1, 1, 4)
+        self.mdt_refresh_ports_button.clicked.connect(self.refresh_requested)
+        self.mdt_connect_button.clicked.connect(self._request_connect)
+        self.mdt_disconnect_button.clicked.connect(self.disconnect_requested)
+        self.mdt_set_button.clicked.connect(
+            lambda: self.set_voltage_requested.emit(self.mdt_voltage_input.value())
         )
+        self._connected = False
+        self._busy = False
+        self.set_connected(False)
 
-        layout.addWidget(QLabel("Port:"), 3, 0)
-        layout.addWidget(self.mdt_port_combo, 3, 1)
-        layout.addWidget(self.mdt_refresh_ports_button, 3, 2)
-        layout.addWidget(self.mdt_connect_button, 3, 3)
+    def _request_connect(self) -> None:
+        port = self.mdt_port_combo.currentData()
+        self.connect_requested.emit(port if isinstance(port, str) else "")
+
+    def set_ports(self, ports) -> None:
+        selected = self.mdt_port_combo.currentData()
+        self.mdt_port_combo.clear()
+        preferred = -1
+        for index, port in enumerate(ports):
+            self.mdt_port_combo.addItem(f"{port.device} — {port.description}", port.device)
+            if ((getattr(port, "vid", None) == 0x1313
+                 and getattr(port, "pid", None) == 0x1004)
+                    or "mdt694b" in port.description.lower()):
+                preferred = index
+        selected_index = self.mdt_port_combo.findData(selected)
+        if selected_index >= 0:
+            self.mdt_port_combo.setCurrentIndex(selected_index)
+        elif preferred >= 0:
+            self.mdt_port_combo.setCurrentIndex(preferred)
+        if not ports:
+            self.mdt_port_combo.addItem("Brak dostępnych portów", None)
+        self._apply_state()
+
+    def set_connected(self, connected: bool) -> None:
+        self._connected, self._busy = connected, False
+        self.mdt_status_label.setText("Połączono" if connected else "Rozłączono")
+        self._apply_state()
+
+    def set_busy(self, busy: bool) -> None:
+        self._busy = busy
+        self._apply_state()
+
+    def _apply_state(self) -> None:
+        port = self.mdt_port_combo.currentData() is not None
+        self.mdt_port_combo.setEnabled(not self._connected and not self._busy and port)
+        self.mdt_refresh_ports_button.setEnabled(not self._connected and not self._busy)
+        self.mdt_connect_button.setEnabled(not self._connected and not self._busy and port)
+        self.mdt_disconnect_button.setEnabled(self._connected and not self._busy)
+        self.mdt_voltage_input.setEnabled(self._connected and not self._busy)
+        self.mdt_set_button.setEnabled(self._connected and not self._busy)
+
+    def show_voltage(self, voltage: float) -> None:
+        self.mdt_actual_voltage_label.setText(f"{voltage:.2f} V")
+
+    def set_voltage_range(self, minimum: float, maximum: float) -> None:
+        self.mdt_voltage_input.setRange(minimum, maximum)
+
+    def show_error(self, message: str) -> None:
+        self.mdt_status_label.setText(f"Błąd komunikacji: {message}")

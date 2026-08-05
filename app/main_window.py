@@ -46,10 +46,10 @@ class MainWindow(QMainWindow):
         self.tc200_panel = TC200Panel()
         layout.addWidget(self.tc200_panel)
 
-        self.mdt694b_panel = self._create_mdt_panel()
+        self.mdt694b_panel = MDT694BPanel()
         layout.addWidget(self.mdt694b_panel)
 
-        self.mpc220_panel = self._create_mpc_panel()
+        self.mpc220_panel = MPC220Panel()
         layout.addWidget(self.mpc220_panel)
         layout.addStretch()
 
@@ -59,37 +59,6 @@ class MainWindow(QMainWindow):
         scroll.setMinimumWidth(420)
 
         return scroll
-
-    def _create_mdt_panel(self) -> MDT694BPanel:
-        panel = MDT694BPanel()
-        self.mdt_current_voltage_label = panel.mdt_current_voltage_label
-        self.mdt_setpoint_spinbox = panel.mdt_setpoint_spinbox
-        self.mdt_set_button = panel.mdt_set_button
-        self.mdt_status_label = panel.mdt_status_label
-        self.mdt_port_combo = panel.mdt_port_combo
-        self.mdt_refresh_ports_button = panel.mdt_refresh_ports_button
-        self.mdt_connect_button = panel.mdt_connect_button
-        return panel
-
-    def _create_mpc_panel(self) -> MPC220Panel:
-        panel = MPC220Panel()
-        self.mpc_status_label = panel.mpc_status_label
-        self.mpc_port_combo = panel.mpc_port_combo
-        self.mpc_refresh_ports_button = panel.mpc_refresh_ports_button
-        self.mpc_connect_button = panel.mpc_connect_button
-
-        for index in (1, 2):
-            setattr(self, f"mpc{index}_left_large_button", getattr(panel, f"mpc{index}_left_large_button"))
-            setattr(self, f"mpc{index}_left_medium_button", getattr(panel, f"mpc{index}_left_medium_button"))
-            setattr(self, f"mpc{index}_left_small_button", getattr(panel, f"mpc{index}_left_small_button"))
-            setattr(self, f"mpc{index}_position_label", getattr(panel, f"mpc{index}_position_label"))
-            setattr(self, f"mpc{index}_target_spinbox", getattr(panel, f"mpc{index}_target_spinbox"))
-            setattr(self, f"mpc{index}_set_button", getattr(panel, f"mpc{index}_set_button"))
-            setattr(self, f"mpc{index}_right_small_button", getattr(panel, f"mpc{index}_right_small_button"))
-            setattr(self, f"mpc{index}_right_medium_button", getattr(panel, f"mpc{index}_right_medium_button"))
-            setattr(self, f"mpc{index}_right_large_button", getattr(panel, f"mpc{index}_right_large_button"))
-
-        return panel
 
     def _create_measurement_column(self) -> QWidget:
         self.measurement_panel = MeasurementPanel()

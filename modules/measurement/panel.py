@@ -23,21 +23,32 @@ class MeasurementPanel(QWidget):
         ads_layout = QVBoxLayout(self.ads1263_panel)
 
         self.plot_widget = pg.PlotWidget()
-        self.plot_widget.setBackground("w")
-        self.plot_widget.setLabel("bottom", "Czas [s]")
-        self.plot_widget.setLabel("left", "Napięcie [V]")
-        self.plot_widget.addLegend(offset=(10, 10))
-        self.plot_widget.showGrid(x=True, y=True)
+        self.plot_widget._dark_background = "#0b0f14"
+        self.plot_widget.setBackground(self.plot_widget._dark_background)
+        self.plot_widget.setLabel("bottom", "Czas [s]", **{"color": "#dfe7f3"})
+        self.plot_widget.setLabel("left", "Napięcie [V]", **{"color": "#dfe7f3"})
+        self.plot_widget.getAxis("bottom").setPen("#a9b6c5")
+        self.plot_widget.getAxis("left").setPen("#a9b6c5")
+        self.plot_widget.getAxis("bottom").setTextPen("#dfe7f3")
+        self.plot_widget.getAxis("left").setTextPen("#dfe7f3")
+        self.plot_widget.showGrid(x=True, y=True, alpha=0.25)
         self.plot_widget.setXRange(0, 20, padding=0)
+        self.plot_widget.setMouseEnabled(x=True, y=True)
+        self.plot_widget.setMenuEnabled(False)
+        self.plot_widget.getPlotItem().getViewBox().setMouseMode(pg.ViewBox.RectMode)
+        self._auto_view_enabled = True
+
+        self.plot_widget.addLegend(offset=(10, 10))
+        self.plot_widget.getPlotItem().legend.setBrush((30, 35, 42, 180))
 
         self.in0_curve = self.plot_widget.plot(
             [], [],
-            pen=pg.mkPen(color="#1f77b4", width=2),
+            pen=pg.mkPen(color="#38bdf8", width=2),
             name="IN0",
         )
         self.in1_curve = self.plot_widget.plot(
             [], [],
-            pen=pg.mkPen(color="#ff7f0e", width=2),
+            pen=pg.mkPen(color="#f59e0b", width=2),
             name="IN1",
         )
         ads_layout.addWidget(self.plot_widget)
@@ -49,6 +60,8 @@ class MeasurementPanel(QWidget):
         self.log_clear_button = self.log_panel.log_clear_button
         layout.addWidget(self.log_panel)
 
+        self.plot_widget.getPlotItem().getViewBox().sigRangeChangedManually.connect(self._on_manual_range_changed)
+        self._update_auto_button()
         self.set_measurement_running(False)
 
     def _create_measurement_buttons(self) -> QHBoxLayout:
@@ -57,13 +70,17 @@ class MeasurementPanel(QWidget):
         self.measurement_start_button = QPushButton("Rozpocznij pomiar")
         self.measurement_stop_button = QPushButton("Zatrzymaj pomiar")
         self.plot_clear_button = QPushButton("Wyczyść wykres")
+        self.auto_view_button = QPushButton("Auto: WŁ.")
+        self.auto_view_button.setCheckable(True)
         self.data_save_button = QPushButton("Zapisz dane")
 
         self.plot_clear_button.clicked.connect(self.clear_plot)
+        self.auto_view_button.clicked.connect(self._toggle_auto_view)
 
         layout.addWidget(self.measurement_start_button)
         layout.addWidget(self.measurement_stop_button)
         layout.addWidget(self.plot_clear_button)
+        layout.addWidget(self.auto_view_button)
         layout.addWidget(self.data_save_button)
         layout.addStretch()
 
@@ -73,18 +90,58 @@ class MeasurementPanel(QWidget):
         self.measurement_start_button.setEnabled(not running)
         self.measurement_stop_button.setEnabled(running)
 
+    def _set_auto_view_enabled(self, enabled: bool) -> None:
+        self._auto_view_enabled = bool(enabled)
+        self._update_auto_button()
+        if self._auto_view_enabled:
+            self._apply_auto_view()
+        else:
+            self.plot_widget.disableAutoRange(axis="y")
+
+    def _toggle_auto_view(self) -> None:
+        self._set_auto_view_enabled(not self._auto_view_enabled)
+
+    def _apply_auto_view(self) -> None:
+        if not self.in0_curve or not self.in1_curve:
+            self.plot_widget.setXRange(0, 20, padding=0)
+            self.plot_widget.enableAutoRange(axis="y")
+            return
+
+        data_x = self.in0_curve.getData()[0]
+        if data_x is None or len(data_x) == 0:
+            self.plot_widget.setXRange(0, 20, padding=0)
+            self.plot_widget.enableAutoRange(axis="y")
+            return
+
+        latest_time = float(max(data_x))
+        if latest_time <= 20.0:
+            x_min, x_max = 0.0, 20.0
+        else:
+            x_min = latest_time - 20.0
+            x_max = latest_time
+        self.plot_widget.setXRange(x_min, x_max, padding=0)
+        self.plot_widget.enableAutoRange(axis="y")
+
+    def _update_auto_button(self) -> None:
+        if hasattr(self, "auto_view_button"):
+            self.auto_view_button.setChecked(self._auto_view_enabled)
+            self.auto_view_button.setText("Auto: WŁ." if self._auto_view_enabled else "Auto: WYŁ.")
+
+    def _on_manual_range_changed(self, *args) -> None:
+        self._set_auto_view_enabled(False)
+
     def update_plot(self, times, in0_values, in1_values) -> None:
         self.in0_curve.setData(times, in0_values)
         self.in1_curve.setData(times, in1_values)
-        if times:
-            max_time = max(times)
-            self.plot_widget.setXRange(max(0.0, max_time - 20.0), max_time + 0.5, padding=0)
-            self.plot_widget.enableAutoRange(axis="y")
+        if self._auto_view_enabled:
+            self._apply_auto_view()
 
     def clear_plot(self) -> None:
         self.in0_curve.setData([], [])
         self.in1_curve.setData([], [])
+        self._set_auto_view_enabled(True)
         self.plot_widget.setXRange(0, 20, padding=0)
+        self.plot_widget.enableAutoRange(axis="y")
 
     def append_log(self, message: str) -> None:
         self.log_panel.append_log(message)

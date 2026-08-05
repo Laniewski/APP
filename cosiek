@@ -1,24 +1,149 @@
-13:14:36 | ERROR | modules.measurement.controller | Nie udało się uruchomić pomiaru ADS1263
-Traceback (most recent call last):
-  File "/home/malina/APPv2/modules/measurement/driver.py", line 30, in connect
-    config.module_init()
-    ~~~~~~~~~~~~~~~~~~^^
-  File "/home/malina/APPv2/modules/measurement/vendor/config.py", line 83, in module_init
-    return _get_backend().module_init()
-           ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
-  File "/home/malina/APPv2/modules/measurement/vendor/config.py", line 56, in module_init
-    self.GPIO.setup(self.__class__.RST_PIN, self.GPIO.OUT)
-                    ^^^^^^^^^^^^^^^^^^^^^^
-AttributeError: type object '_Hardware' has no attribute 'RST_PIN'
+Wykryte porty:
+  /dev/ttyACM0: MDT694B (VID:PID 1313:1004)
+  /dev/ttyAMA10: n/a (VID:PID brak)
+============================================================================
+THORLABS MDT694B - BEZPIECZNA CHARAKTERYSTYKA KOMENDA -> ODCZYT
+============================================================================
+Czas:               2026-08-05T13:31:07+02:00
+System:             Linux-6.12.75+rpt-rpi-2712-aarch64-with-glibc2.41
+Python:             3.13.5
+Port:               /dev/ttyACM0
+Najwyższa komenda:  4.0 V
+Próg awaryjny:      5.0 V
+Sekwencja:          (0.0, 0.25, 0.5, 1.0, 2.0, 3.0, 4.0, 0.0)
+UWAGA: xvoltage? jest odczytem urządzenia, nie echem dokładnej nastawy.
 
-The above exception was the direct cause of the following exception:
+[1/4] Identyfikacja
+    TX:    'id?'
+    RAW:   b'id?\r\r\r\rModel MDT694B Piezo Control Module\rFirmware Version: 1.10\rVoltage Range: 0V to 150V\rSerial#:2010060369-03\rFriendly Name:MDT694B\rThorlabs, Inc. Newton, NJ 07860\rwww.thorlabs.com\r\r>'
+    CLEAN: Model MDT694B Piezo Control Module | Firmware Version: 1.10 | Voltage Range: 0V to 150V | Serial#:2010060369-03 | Friendly Name:MDT694B | Thorlabs, Inc. Newton, NJ 07860 | www.thorlabs.com
 
-Traceback (most recent call last):
-  File "/home/malina/APPv2/modules/measurement/controller.py", line 38, in start_measurement
-    self._driver.connect()
-    ~~~~~~~~~~~~~~~~~~~~^^
-  File "/home/malina/APPv2/modules/measurement/driver.py", line 32, in connect
-    raise RuntimeError(f"Nie udało się zainicjalizować GPIO/SPI ADS1263: {exc}") from exc
-RuntimeError: Nie udało się zainicjalizować GPIO/SPI ADS1263: type object '_Hardware' has no attribute 'RST_PIN'
-ADS1263: Nie udało się zainicjalizować GPIO/SPI ADS1263: type object '_Hardware' has no attribute 'RST_PIN'
-13:14:36 | ERROR | modules.measurement.controller | ADS1263: Nie udało się zainicjalizować GPIO/SPI ADS1263: type object '_Hardware' has no attribute 'RST_PIN'
+[2/4] Kontrola zakresów
+    TX:    'vlimit?'
+    RAW:   b'vlimit?\r[ 150]\r>'
+    CLEAN: [ 150]
+    TX:    'xmin?'
+    RAW:   b'xmin?\r0\r>'
+    CLEAN: 0
+    TX:    'xmax?'
+    RAW:   b'xmax?\r150.50\r>'
+    CLEAN: 150.50
+    TX:    'sysmin?'
+    RAW:   b'sysmin?\r0\r>'
+    CLEAN: 0
+    TX:    'sysmax?'
+    RAW:   b'sysmax?\r150.50\r>'
+    CLEAN: 150.50
+    TX:    'xvoltage?'
+    RAW:   b'xvoltage?\r[     0]\r>'
+    CLEAN: [     0]
+    TX:    'dacstep?'
+    RAW:   b'dacstep?\r868\r\r>'
+    CLEAN: 868
+  Limit sprzętowy:  150.000 V
+  Zakres X:         0.000 ... 150.500 V
+  Zakres systemu:   0.000 ... 150.500 V
+  Nastawa startowa: 0.000 V
+  dacstep:          868 (kroki strzałek/enkodera, nie wolty)
+
+[3/4] Potwierdzenie operatora
+  - piezo ODŁĄCZONE od OUTPUT
+  - EXT INPUT niepodłączone
+  - APPv2 zamknięta
+
+Wpisz dokładnie CHARAKTERYSTYKA 4V: 
+[4/4] Sekwencja pomiarowa
+
+  Krok 1/8: zadaję 0.000 V
+    TX:    'xvoltage=0.000'
+    RAW:   b'xvoltage=0.000\r>'
+    CLEAN: <potwierdzenie bez wartości>
+    TX:    'xvoltage?'
+    RAW:   b'xvoltage?\r[     0]\r>'
+    CLEAN: [     0]
+  ODCZYT: 0.000 V; różnica względem komendy: +0.000 V
+
+  Krok 2/8: zadaję 0.250 V
+    TX:    'xvoltage=0.250'
+    RAW:   b'xvoltage=0.250\r>'
+    CLEAN: <potwierdzenie bez wartości>
+    TX:    'xvoltage?'
+    RAW:   b'xvoltage?\r[  0.48]\r>'
+    CLEAN: [  0.48]
+  ODCZYT: 0.480 V; różnica względem komendy: +0.230 V
+
+  Krok 3/8: zadaję 0.500 V
+    TX:    'xvoltage=0.500'
+    RAW:   b'xvoltage=0.500\r>'
+    CLEAN: <potwierdzenie bez wartości>
+    TX:    'xvoltage?'
+    RAW:   b'xvoltage?\r[  0.71]\r>'
+    CLEAN: [  0.71]
+  ODCZYT: 0.710 V; różnica względem komendy: +0.210 V
+
+  Krok 4/8: zadaję 1.000 V
+    TX:    'xvoltage=1.000'
+    RAW:   b'xvoltage=1.000\r>'
+    CLEAN: <potwierdzenie bez wartości>
+    TX:    'xvoltage?'
+    RAW:   b'xvoltage?\r[  1.21]\r>'
+    CLEAN: [  1.21]
+  ODCZYT: 1.210 V; różnica względem komendy: +0.210 V
+
+  Krok 5/8: zadaję 2.000 V
+    TX:    'xvoltage=2.000'
+    RAW:   b'xvoltage=2.000\r>'
+    CLEAN: <potwierdzenie bez wartości>
+    TX:    'xvoltage?'
+    RAW:   b'xvoltage?\r[  2.18]\r>'
+    CLEAN: [  2.18]
+  ODCZYT: 2.180 V; różnica względem komendy: +0.180 V
+
+  Krok 6/8: zadaję 3.000 V
+    TX:    'xvoltage=3.000'
+    RAW:   b'xvoltage=3.000\r>'
+    CLEAN: <potwierdzenie bez wartości>
+    TX:    'xvoltage?'
+    RAW:   b'xvoltage?\r[  3.17]\r>'
+    CLEAN: [  3.17]
+  ODCZYT: 3.170 V; różnica względem komendy: +0.170 V
+
+  Krok 7/8: zadaję 4.000 V
+    TX:    'xvoltage=4.000'
+    RAW:   b'xvoltage=4.000\r>'
+    CLEAN: <potwierdzenie bez wartości>
+    TX:    'xvoltage?'
+    RAW:   b'xvoltage?\r[  4.15]\r>'
+    CLEAN: [  4.15]
+  ODCZYT: 4.150 V; różnica względem komendy: +0.150 V
+
+  Krok 8/8: zadaję 0.000 V
+    TX:    'xvoltage=0.000'
+    RAW:   b'xvoltage=0.000\r>'
+    CLEAN: <potwierdzenie bez wartości>
+    TX:    'xvoltage?'
+    RAW:   b'xvoltage?\r[     0]\r>'
+    CLEAN: [     0]
+  ODCZYT: 0.000 V; różnica względem komendy: +0.000 V
+
+WYNIKI CHARAKTERYSTYKI
+  zadano [V] | odczyt [V] | różnica [V]
+  -----------+------------+------------
+       0.000 |      0.000 |     +0.000
+       0.250 |      0.480 |     +0.230
+       0.500 |      0.710 |     +0.210
+       1.000 |      1.210 |     +0.210
+       2.000 |      2.180 |     +0.180
+       3.000 |      3.170 |     +0.170
+       4.000 |      4.150 |     +0.150
+       0.000 |      0.000 |     +0.000
+
+============================================================================
+PODSUMOWANIE
+  Komunikacja:       OK
+  Sekwencja:         ZAKOŃCZONA
+  Końcowe 0 V:       POTWIERDZONE
+  Ocena kalibracji:  wymaga analizy tabeli powyżej
+============================================================================
+
+Raport zapisano w: /home/malina/Desktop/MDT694B/mdt694b/mdt694b_characterization_20260805_133107.txt

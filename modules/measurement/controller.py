@@ -38,6 +38,9 @@ class MeasurementWorker(QObject):
             self._driver.connect()
             self._driver.start_measurement()
             self._running = True
+            if self._timer is not None:
+                self._timer.stop()
+                self._timer.deleteLater()
             self._timer = QTimer(self)
             self._timer.setInterval(self._sample_interval_ms)
             self._timer.timeout.connect(self._read_once)
@@ -45,10 +48,10 @@ class MeasurementWorker(QObject):
             self.started.emit()
         except Exception as exc:
             logger.exception("Nie udało się uruchomić pomiaru ADS1263")
+            self._running = False
             self._cleanup_driver()
             self.error.emit(f"ADS1263: {exc}")
             self.stopped.emit()
-            self.finished.emit()
 
     @Slot()
     def _read_once(self) -> None:
@@ -96,6 +99,7 @@ class MeasurementController(QObject):
     request_stop = Signal()
     request_clear = Signal()
     request_save = Signal(str)
+    request_shutdown = Signal()
 
     def __init__(self, panel, driver_factory=None, sample_interval_ms: int = 200) -> None:
         super().__init__(panel)
@@ -114,12 +118,12 @@ class MeasurementController(QObject):
         self.request_stop.connect(self.worker.stop_measurement, Qt.ConnectionType.QueuedConnection)
         self.request_clear.connect(self.clear_data, Qt.ConnectionType.QueuedConnection)
         self.request_save.connect(self.save_csv, Qt.ConnectionType.QueuedConnection)
+        self.request_shutdown.connect(self.worker.shutdown, Qt.ConnectionType.QueuedConnection)
 
         self.worker.started.connect(self._on_started)
         self.worker.sample_ready.connect(self._on_sample_ready)
         self.worker.error.connect(self._on_error)
         self.worker.stopped.connect(self._on_stopped)
-        self.worker.finished.connect(self._thread.quit)
         self._thread.finished.connect(self.worker.deleteLater)
         self._thread.start()
 
@@ -162,8 +166,8 @@ class MeasurementController(QObject):
     def _on_sample_ready(self, in0: float, in1: float) -> None:
         relative_time = time.perf_counter() - self._measurement_start
         self.buffer.add_sample(relative_time, in0, in1)
-        visible_times, visible_in0, visible_in1 = self.buffer.get_visible_data(window_seconds=20.0)
-        self.panel.update_plot(visible_times, visible_in0, visible_in1)
+        times, in0_values, in1_values = self.buffer.get_all_data()
+        self.panel.update_plot(times, in0_values, in1_values)
 
     def _on_started(self) -> None:
         if not self._running:
@@ -198,6 +202,7 @@ class MeasurementController(QObject):
     def shutdown(self, timeout_ms: int = 3000) -> None:
         if self._thread.isRunning():
             self.request_stop.emit()
+            self.request_shutdown.emit()
             if not self._thread.wait(timeout_ms):
                 self._thread.quit()
                 self._thread.wait(timeout_ms)
