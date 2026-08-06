@@ -14,7 +14,9 @@ from modules.measurement.controller import MeasurementController, MeasurementWor
 from modules.measurement.data_buffer import DataBuffer
 from modules.measurement.driver import ADS1263Driver
 from modules.measurement.panel import MeasurementPanel
+from modules.measurement.vendor.ADS1263 import ADS1263, ADS1263_REG
 import modules.measurement.vendor.config as measurement_config
+import modules.measurement.vendor.ADS1263 as waveshare_adc
 
 
 class FakeDriver:
@@ -113,6 +115,7 @@ class DataBufferTests(unittest.TestCase):
 
         worker.start_measurement()
         self.assertTrue(worker._running)
+        worker.stop_measurement()
 
     def test_driver_close_does_not_double_close_backend(self):
         class FakeADC:
@@ -130,6 +133,111 @@ class DataBufferTests(unittest.TestCase):
 
         self.assertEqual(fake_backend.module_exit_calls, 1)
         self.assertIsNone(fake_driver._adc)
+
+
+class ADS1263HardwareProtocolTests(unittest.TestCase):
+    def setUp(self):
+        self.adc = ADS1263()
+        self.register_writes = []
+
+    def test_single_ended_channels_use_aincom(self):
+        self.adc.ADS1263_WriteReg = lambda register, value: self.register_writes.append(
+            (register, value)
+        )
+        self.adc.ADS1263_SetChannal(0)
+        self.adc.ADS1263_SetChannal(1)
+        self.assertEqual(self.register_writes, [
+            (ADS1263_REG["REG_INPMUX"], 0x0A),
+            (ADS1263_REG["REG_INPMUX"], 0x1A),
+        ])
+
+    def test_hardware_configuration_matches_working_main_driver(self):
+        self.adc.ADS1263_WriteReg = lambda register, value: self.register_writes.append(
+            (register, value)
+        )
+        self.adc.ADS1263_ConfigADC(0, 0x08)
+        self.assertIn((ADS1263_REG["REG_MODE2"], 0x88), self.register_writes)
+        self.assertIn((ADS1263_REG["REG_REFMUX"], 0x24), self.register_writes)
+        self.assertIn((ADS1263_REG["REG_MODE0"], 0x03), self.register_writes)
+        self.assertIn((ADS1263_REG["REG_MODE1"], 0x84), self.register_writes)
+
+    def _checksum(self, raw):
+        total = 0x9B
+        value = raw
+        while value:
+            total += value & 0xFF
+            value >>= 8
+        return total & 0xFF
+
+    def test_adc1_reads_four_data_bytes_and_checksum(self):
+        reads = [[0x40], [0x12, 0x34, 0x56, 0x78, self._checksum(0x12345678)]]
+        counts = []
+        with patch.object(waveshare_adc.config, "digital_write"), \
+             patch.object(waveshare_adc.config, "spi_writebyte"), \
+             patch.object(waveshare_adc.config, "spi_readbytes",
+                          side_effect=lambda count: counts.append(count) or reads.pop(0)):
+            self.assertEqual(self.adc.ADS1263_Read_ADC_Data(), 0x12345678)
+        self.assertEqual(counts, [1, 5])
+
+    def test_invalid_checksum_and_short_frame_raise(self):
+        for frame in ([0, 0, 0, 1, 0], [0, 0, 0]):
+            reads = [[0x40], frame]
+            with patch.object(waveshare_adc.config, "digital_write"), \
+                 patch.object(waveshare_adc.config, "spi_writebyte"), \
+                 patch.object(waveshare_adc.config, "spi_readbytes", side_effect=reads):
+                with self.assertRaises(RuntimeError):
+                    self.adc.ADS1263_Read_ADC_Data()
+
+    def test_bad_chip_id_fails_initialization(self):
+        self.adc.ADS1263_reset = lambda: None
+        self.adc.ADS1263_ReadChipID = lambda: 0
+        with self.assertRaisesRegex(RuntimeError, "Chip ID"):
+            self.adc.ADS1263_init_ADC1()
+
+    def test_signed_voltage_conversion_and_full_scale(self):
+        driver = ADS1263Driver(reference_voltage=5.0)
+        self.assertAlmostEqual(driver._raw_to_voltage(0x7FFFFFFF), 5.0)
+        self.assertLess(driver._raw_to_voltage(0xFFFFFFFF), 0.0)
+        self.assertAlmostEqual(
+            driver._raw_to_voltage(0x80000000),
+            -5.0,
+            places=6,
+        )
+
+    def test_read_sample_reads_in0_and_in1_separately(self):
+        class FakeADC:
+            def __init__(self): self.channels = []
+            def ADS1263_GetChannalValue(self, channel):
+                self.channels.append(channel)
+                return 0x10000000 if channel == 0 else 0x20000000
+
+        driver = ADS1263Driver()
+        driver._adc = FakeADC()
+        driver._connected = True
+        in0, in1 = driver.read_sample()
+        self.assertEqual(driver._adc.channels, [0, 1])
+        self.assertNotEqual(in0, in1)
+
+    def test_connect_initializes_backend_exactly_once(self):
+        class FakeADC:
+            def ADS1263_init_ADC1(self, rate): return 0
+            def ADS1263_SetMode(self, mode): self.mode = mode
+            def module_exit(self): pass
+
+        with patch.object(measurement_config, "module_init", return_value=0) as init, \
+             patch.object(waveshare_adc, "ADS1263", return_value=FakeADC()):
+            driver = ADS1263Driver()
+            driver.connect()
+            self.assertEqual(init.call_count, 1)
+            self.assertEqual(driver._adc.mode, 0)
+            driver.close()
+
+    def test_backend_initialization_error_prevents_connection(self):
+        with patch.object(measurement_config, "module_init", return_value=-1):
+            driver = ADS1263Driver()
+            with self.assertRaisesRegex(RuntimeError, "GPIO/SPI"):
+                driver.connect()
+            self.assertFalse(driver._connected)
 
 
 class MeasurementControllerTests(unittest.TestCase):

@@ -18,6 +18,8 @@ class ADS1263Driver:
         self._connected = False
 
     def connect(self) -> None:
+        if self._connected:
+            return
         try:
             from modules.measurement.vendor import ADS1263 as waveshare_driver
             from modules.measurement.vendor import config
@@ -27,13 +29,21 @@ class ADS1263Driver:
             ) from exc
 
         try:
-            config.module_init()
+            init_result = config.module_init()
+            if init_result != 0:
+                raise RuntimeError(f"backend zwrócił kod {init_result!r}")
         except Exception as exc:
+            try:
+                config.module_exit()
+            except Exception:
+                pass
             raise RuntimeError(f"Nie udało się zainicjalizować GPIO/SPI ADS1263: {exc}") from exc
 
         try:
             self._adc = waveshare_driver.ADS1263()
-            self._adc.ADS1263_init_ADC1("ADS1263_400SPS")
+            result = self._adc.ADS1263_init_ADC1("ADS1263_400SPS")
+            if result != 0:
+                raise RuntimeError(f"Inicjalizacja ADS1263 zwróciła kod {result!r}.")
             self._adc.ADS1263_SetMode(0)
             self._connected = True
             logger.info("ADS1263 podłączono i zainicjalizowano.")

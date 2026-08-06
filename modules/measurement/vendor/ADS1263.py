@@ -105,6 +105,8 @@ ADS1263_CMD = {
 
 
 class ADS1263:
+    DATA_READY_ATTEMPTS = 400000
+
     def __init__(self) -> None:
         self.rst_pin = config.RST_PIN
         self.cs_pin = config.CS_PIN
@@ -151,7 +153,7 @@ class ADS1263:
             i += 1
             if config.digital_read(self.drdy_pin) == 0:
                 return
-            if i >= 400000:
+            if i >= self.DATA_READY_ATTEMPTS:
                 raise TimeoutError("Przekroczono limit oczekiwania na DRDY ADS1263.")
 
     def ADS1263_ReadChipID(self) -> int:
@@ -162,44 +164,69 @@ class ADS1263:
         self.ScanMode = mode
 
     def ADS1263_ConfigADC(self, gain: int, drate: int) -> None:
-        mode2 = ((gain & 0x07) << 4) | (drate & 0x0F)
+        # Konfiguracja sprawdzona sprzętowo w sterowniku z gałęzi main.
+        mode2 = 0x80 | ((gain & 0x07) << 4) | (drate & 0x0F)
         self.ADS1263_WriteReg(ADS1263_REG["REG_MODE2"], mode2)
-        self.ADS1263_WriteReg(ADS1263_REG["REG_REFMUX"], 0x00)
+        self.ADS1263_WriteReg(ADS1263_REG["REG_REFMUX"], 0x24)
         self.ADS1263_WriteReg(ADS1263_REG["REG_MODE0"], ADS1263_DELAY["ADS1263_DELAY_35us"])
-        self.ADS1263_WriteReg(ADS1263_REG["REG_MODE1"], 0x80)
+        self.ADS1263_WriteReg(ADS1263_REG["REG_MODE1"], 0x84)
+        # Status i checksum są częścią ramki RDATA1 używanej poniżej.
+        self.ADS1263_WriteReg(ADS1263_REG["REG_INTERFACE"], 0x05)
 
     def ADS1263_SetChannal(self, channel: int) -> None:
-        mux = channel & 0x1F
+        if not 0 <= channel <= 9:
+            raise ValueError("Kanał single-ended ADS1263 musi być w zakresie 0–9.")
+        mux = (channel << 4) | 0x0A
         self.ADS1263_WriteReg(ADS1263_REG["REG_INPMUX"], mux)
 
-    def _raw_to_voltage(self, raw_value: int) -> float:
-        # Stare urządzenie wykorzystuje pełną skalę 32-bitową ze znakiem i
-        # referencję 5 V. Ta wartość jest zgodna z wcześniejszą implementacją na
-        # gałęzi `main` i pozostaje bezpiecznym przeliczeniem dla ADC1.
-        if raw_value & 0x80000000:
-            raw_value -= 0x100000000
-        return raw_value * 5.0 / 0x7FFFFFFF
-
-    def ADS1263_init_ADC1(self, rate_name: str = "ADS1263_400SPS") -> None:
+    def ADS1263_init_ADC1(self, rate_name: str = "ADS1263_400SPS") -> int:
         self.ADS1263_reset()
-        self.ADS1263_ReadChipID()
+        chip_id = self.ADS1263_ReadChipID()
+        if chip_id != 0x01:
+            raise RuntimeError(
+                f"Nieprawidłowy Chip ID ADS1263: oczekiwano 0x01, odczytano {chip_id:#04x}."
+            )
         self.ADS1263_WriteCmd(ADS1263_CMD["CMD_STOP1"])
         self.ADS1263_ConfigADC(ADS1263_GAIN["ADS1263_GAIN_1"], ADS1263_DRATE[rate_name])
         self.ADS1263_WriteCmd(ADS1263_CMD["CMD_START1"])
+        return 0
+
+    def ADS1263_Read_ADC_Data(self) -> int:
+        config.digital_write(self.cs_pin, 0)
+        try:
+            for _ in range(self.DATA_READY_ATTEMPTS):
+                config.spi_writebyte([ADS1263_CMD["CMD_RDATA1"]])
+                status = config.spi_readbytes(1)
+                if len(status) != 1:
+                    raise RuntimeError("Niepełny status odpowiedzi ADC1.")
+                if status[0] & 0x40:
+                    break
+            else:
+                raise TimeoutError("Timeout oczekiwania na dane ADC1 ADS1263.")
+
+            frame = config.spi_readbytes(5)
+            if len(frame) != 5:
+                raise RuntimeError(
+                    f"Niepełna ramka ADC1: oczekiwano 5 bajtów, otrzymano {len(frame)}."
+                )
+            raw = (
+                ((frame[0] << 24) & 0xFF000000)
+                | ((frame[1] << 16) & 0x00FF0000)
+                | ((frame[2] << 8) & 0x0000FF00)
+                | (frame[3] & 0x000000FF)
+            )
+            if self.ADS1263_CheckSum(raw, frame[4]) != 0:
+                raise RuntimeError("Błędna checksum ramki ADC1 ADS1263.")
+            return raw
+        finally:
+            config.digital_write(self.cs_pin, 1)
 
     def ADS1263_GetChannalValue(self, channel: int) -> int:
+        if self.ScanMode != 0:
+            raise RuntimeError("ADS1263 nie pracuje w trybie single-ended.")
         self.ADS1263_SetChannal(channel)
         self.ADS1263_WaitDRDY()
-        config.digital_write(self.cs_pin, 0)
-        config.spi_writebyte([ADS1263_CMD["CMD_RDATA1"]])
-        raw = config.spi_readbytes(3)
-        config.digital_write(self.cs_pin, 1)
-        value = (raw[0] << 16) | (raw[1] << 8) | raw[2]
-        return value
-
-    def ADS1263_GetChannalVoltage(self, channel: int) -> float:
-        raw = self.ADS1263_GetChannalValue(channel)
-        return self._raw_to_voltage(raw)
+        return self.ADS1263_Read_ADC_Data()
 
     def module_exit(self) -> None:
         try:
