@@ -9,6 +9,8 @@ class MDT694BPanel(QGroupBox):
     connect_requested = Signal(str)
     disconnect_requested = Signal()
     set_voltage_requested = Signal(float)
+    start_ramp_requested = Signal(float, float)
+    stop_ramp_requested = Signal()
 
     def __init__(self) -> None:
         super().__init__("MDT694B — sterownik piezo")
@@ -25,6 +27,14 @@ class MDT694BPanel(QGroupBox):
         self.mdt_voltage_input.setRange(0.0, 150.0)
         self.mdt_voltage_input.setSuffix(" V")
         self.mdt_set_button = QPushButton("Ustaw napięcie")
+        self.mdt_ramp_rate_input = QDoubleSpinBox()
+        self.mdt_ramp_rate_input.setDecimals(2)
+        self.mdt_ramp_rate_input.setRange(0.01, 1000.0)
+        self.mdt_ramp_rate_input.setValue(10.0)
+        self.mdt_ramp_rate_input.setSuffix(" V/s")
+        self.mdt_start_ramp_button = QPushButton("Rozpocznij rampę")
+        self.mdt_stop_ramp_button = QPushButton("Zatrzymaj rampę")
+        self.mdt_ramp_status_label = QLabel("Rampa nieaktywna")
         self.mdt_status_label = QLabel("Rozłączono")
         layout.addWidget(self.mdt_port_label, 0, 0)
         layout.addWidget(self.mdt_port_combo, 0, 1)
@@ -36,16 +46,29 @@ class MDT694BPanel(QGroupBox):
         layout.addWidget(QLabel("Napięcie zadane:"), 2, 0)
         layout.addWidget(self.mdt_voltage_input, 2, 1, 1, 2)
         layout.addWidget(self.mdt_set_button, 2, 3, 1, 2)
-        layout.addWidget(QLabel("Status:"), 3, 0)
-        layout.addWidget(self.mdt_status_label, 3, 1, 1, 4)
+        layout.addWidget(QLabel("Prędkość rampy:"), 3, 0)
+        layout.addWidget(self.mdt_ramp_rate_input, 3, 1, 1, 2)
+        layout.addWidget(self.mdt_start_ramp_button, 3, 3)
+        layout.addWidget(self.mdt_stop_ramp_button, 3, 4)
+        layout.addWidget(QLabel("Rampa:"), 4, 0)
+        layout.addWidget(self.mdt_ramp_status_label, 4, 1, 1, 4)
+        layout.addWidget(QLabel("Status:"), 5, 0)
+        layout.addWidget(self.mdt_status_label, 5, 1, 1, 4)
         self.mdt_refresh_ports_button.clicked.connect(self.refresh_requested)
         self.mdt_connect_button.clicked.connect(self._request_connect)
         self.mdt_disconnect_button.clicked.connect(self.disconnect_requested)
         self.mdt_set_button.clicked.connect(
             lambda: self.set_voltage_requested.emit(self.mdt_voltage_input.value())
         )
+        self.mdt_start_ramp_button.clicked.connect(
+            lambda: self.start_ramp_requested.emit(
+                self.mdt_voltage_input.value(), self.mdt_ramp_rate_input.value()
+            )
+        )
+        self.mdt_stop_ramp_button.clicked.connect(self.stop_ramp_requested)
         self._connected = False
         self._busy = False
+        self._ramp_active = False
         self.set_connected(False)
 
     def _request_connect(self) -> None:
@@ -73,6 +96,9 @@ class MDT694BPanel(QGroupBox):
 
     def set_connected(self, connected: bool) -> None:
         self._connected, self._busy = connected, False
+        if not connected:
+            self._ramp_active = False
+            self.mdt_ramp_status_label.setText("Rampa nieaktywna")
         self.mdt_status_label.setText("Połączono" if connected else "Rozłączono")
         self._apply_state()
 
@@ -86,8 +112,19 @@ class MDT694BPanel(QGroupBox):
         self.mdt_refresh_ports_button.setEnabled(not self._connected and not self._busy)
         self.mdt_connect_button.setEnabled(not self._connected and not self._busy and port)
         self.mdt_disconnect_button.setEnabled(self._connected and not self._busy)
-        self.mdt_voltage_input.setEnabled(self._connected and not self._busy)
-        self.mdt_set_button.setEnabled(self._connected and not self._busy)
+        controls_enabled = self._connected and not self._busy and not self._ramp_active
+        self.mdt_voltage_input.setEnabled(controls_enabled)
+        self.mdt_ramp_rate_input.setEnabled(controls_enabled)
+        self.mdt_set_button.setEnabled(controls_enabled)
+        self.mdt_start_ramp_button.setEnabled(controls_enabled)
+        self.mdt_stop_ramp_button.setEnabled(
+            self._connected and not self._busy and self._ramp_active
+        )
+
+    def set_ramp_active(self, active: bool) -> None:
+        self._ramp_active = bool(active)
+        self.mdt_ramp_status_label.setText("Rampa aktywna" if active else "Rampa nieaktywna")
+        self._apply_state()
 
     def show_voltage(self, voltage: float) -> None:
         self.mdt_actual_voltage_label.setText(f"{voltage:.2f} V")
@@ -97,3 +134,6 @@ class MDT694BPanel(QGroupBox):
 
     def show_error(self, message: str) -> None:
         self.mdt_status_label.setText(f"Błąd komunikacji: {message}")
+
+    def show_command_error(self, message: str) -> None:
+        self.mdt_status_label.setText(f"Błąd: {message}")

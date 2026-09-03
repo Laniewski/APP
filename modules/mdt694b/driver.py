@@ -25,6 +25,7 @@ class MDT694BDriver:
         self._settle_time = settle_time
         self._serial = None
         self._last_errors = []
+        self._voltage_range = None
 
     @property
     def connected(self) -> bool:
@@ -34,6 +35,7 @@ class MDT694BDriver:
         if self.connected:
             return
         try:
+            self._voltage_range = None
             self._serial = self._serial_factory(
                 port=self.port, baudrate=self.baudrate,
                 bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE,
@@ -118,6 +120,8 @@ class MDT694BDriver:
         return {0.0: 75.0, 1.0: 100.0, 2.0: 150.0}.get(value, value)
 
     def read_voltage_range(self) -> tuple[float, float]:
+        if self._voltage_range is not None:
+            return self._voltage_range
         axis_min = self._extract_float(self._send_command("xmin?"))
         axis_max = self._extract_float(self._send_command("xmax?"))
         system_min = self._extract_float(self._send_command("sysmin?"))
@@ -129,7 +133,8 @@ class MDT694BDriver:
             raise MDT694BError(
                 f"Nieprawidłowy efektywny zakres napięcia: {minimum}–{maximum} V."
             )
-        return minimum, maximum
+        self._voltage_range = (minimum, maximum)
+        return self._voltage_range
 
     def set_voltage(self, value: float) -> float:
         value = float(value)
@@ -143,6 +148,7 @@ class MDT694BDriver:
         return list(self._last_errors)
 
     def disconnect(self) -> None:
+        self._voltage_range = None
         connection, self._serial = self._serial, None
         if connection is not None:
             try:
