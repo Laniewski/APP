@@ -14,3 +14,4 @@ venv/
 /fast_polarization_results/
 /polarization_reference_results/
 /piezo_speed_test_log.csv
+/runs/

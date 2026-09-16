@@ -3,8 +3,11 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QAbstractButton,
+    QDockWidget,
+    QHBoxLayout,
     QMainWindow,
     QScrollArea,
+    QPushButton,
     QSplitter,
     QVBoxLayout,
     QWidget,
@@ -12,6 +15,7 @@ from PySide6.QtWidgets import (
 
 from modules.mdt694b.panel import MDT694BPanel
 from modules.measurement.panel import MeasurementPanel
+from modules.measurement_assistant.panel import MeasurementAssistantPanel
 from modules.mpc220.panel import MPC220Panel
 from modules.tc200.panel import TC200Panel
 
@@ -38,8 +42,37 @@ class MainWindow(QMainWindow):
         self.main_splitter.setStretchFactor(0, 1)
         self.main_splitter.setStretchFactor(1, 2)
 
-        main_layout.addWidget(self.main_splitter)
+        body_layout = QHBoxLayout()
+        body_layout.addWidget(self.main_splitter, 1)
+        self.assistant_toggle_button = QPushButton("AI ›")
+        self.assistant_toggle_button.setToolTip("Rozwiń / zwiń Asystenta pomiaru")
+        self.assistant_toggle_button.setCheckable(True)
+        self.assistant_toggle_button.setFixedWidth(50)
+        body_layout.addWidget(self.assistant_toggle_button)
+        main_layout.addLayout(body_layout)
+        self.measurement_assistant_panel = MeasurementAssistantPanel()
+        self.assistant_dock = QDockWidget("Asystent pomiaru", self)
+        self.assistant_dock.setAllowedAreas(Qt.DockWidgetArea.RightDockWidgetArea)
+        self.assistant_dock.setFeatures(QDockWidget.DockWidgetFeature.DockWidgetClosable)
+        self.assistant_dock.setWidget(self.measurement_assistant_panel)
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.assistant_dock)
+        self.assistant_dock.hide()
+        self.assistant_toggle_button.toggled.connect(self.assistant_dock.setVisible)
+        self.assistant_dock.visibilityChanged.connect(self.assistant_toggle_button.setChecked)
+        self._procedure_widget_states = None
         self._optimization_widget_states = None
+
+    def set_procedure_lock(self, active: bool) -> None:
+        """Uniemożliwia ręczne komendy równoległe do kroków runnera."""
+        panels = (self.tc200_panel, self.mdt694b_panel, self.mpc220_panel, self.measurement_panel)
+        if active and self._procedure_widget_states is None:
+            self._procedure_widget_states = {panel: panel.isEnabled() for panel in panels}
+            for panel in panels:
+                panel.setEnabled(False)
+        elif not active and self._procedure_widget_states is not None:
+            states, self._procedure_widget_states = self._procedure_widget_states, None
+            for panel, enabled in states.items():
+                panel.setEnabled(enabled)
 
     def set_optimization_lock(self, active: bool) -> None:
         """Blokuje przyciski GUI, pozostawiając wyłącznie anulowanie."""

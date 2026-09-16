@@ -227,6 +227,9 @@ class TC200Controller(QObject):
         """Odłączony TC200 lub potwierdzone wyłączenie oznacza stan bezpieczny."""
         return not self._connected or self._heater_enabled is False
 
+    def is_connected(self) -> bool:
+        return self._connected
+
     def _release_port(self) -> None:
         if self._port is not None:
             self.port_manager.release(self._port, self)

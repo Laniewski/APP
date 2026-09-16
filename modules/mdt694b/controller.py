@@ -15,6 +15,7 @@ class MDT694BWorker(QObject):
     connected = Signal()
     disconnected = Signal()
     voltage_updated = Signal(float)
+    voltage_set = Signal(float)
     voltage_range_updated = Signal(float, float)
     busy_changed = Signal(bool)
     ramp_active_changed = Signal(bool)
@@ -75,6 +76,7 @@ class MDT694BWorker(QObject):
             self._current_voltage = voltage
             logger.info("MDT694B: urządzenie zwróciło %.2f V", voltage)
             self.voltage_updated.emit(voltage)
+            self.voltage_set.emit(voltage)
         except Exception as exc:
             self._fail("Nie udało się ustawić napięcia MDT694B", exc)
         finally:

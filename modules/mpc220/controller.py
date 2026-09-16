@@ -1,10 +1,12 @@
 """Kontroler MPC220 i worker będący jedynym właścicielem drivera."""
 
 import logging
+import math
 
 from PySide6.QtCore import QObject, QThread, Qt, Signal, Slot
 
-from modules.mpc220.calibration import (angle_to_command, calculate_target_angle,
+from modules.mpc220.calibration import (MPC_MIN_ANGLE_DEG, MPC_MAX_ANGLE_DEG,
+                                        angle_to_command, calculate_target_angle,
                                         clamp_angle, raw_position_to_angle)
 from modules.mpc220.driver import MPC220Driver
 from modules.mpc220.polarization_optimizer import PolarizationOptimizer
@@ -16,6 +18,7 @@ class MPC220Worker(QObject):
     connected = Signal()
     disconnected = Signal()
     position_updated = Signal(int, float)
+    angle_set = Signal(int, float)
     busy_changed = Signal(bool)
     error = Signal(str)
     stopped = Signal()
@@ -72,7 +75,8 @@ class MPC220Worker(QObject):
     @Slot(int, float)
     def set_angle(self, paddle_number: int, angle_deg: float) -> None:
         try:
-            self._move_to_angle(paddle_number, clamp_angle(angle_deg))
+            actual = self._move_to_angle(paddle_number, clamp_angle(angle_deg))
+            self.angle_set.emit(paddle_number, actual)
         except Exception as exc:
             self._communication_error("Nie udało się ustawić kąta MPC220", exc)
 
@@ -91,14 +95,16 @@ class MPC220Worker(QObject):
             self.busy_changed.emit(False)
 
     def _move_to_angle(self, paddle_number: int, angle_deg: float,
-                       manage_busy: bool = True) -> None:
+                       manage_busy: bool = True) -> float:
         if manage_busy:
             self.busy_changed.emit(True)
         try:
             driver = self._require_driver()
             driver.move_absolute_units(paddle_number, angle_to_command(angle_deg))
             driver.wait_until_stopped(paddle_number)
-            self.position_updated.emit(paddle_number, self._read_angle(paddle_number))
+            actual = self._read_angle(paddle_number)
+            self.position_updated.emit(paddle_number, actual)
+            return actual
         finally:
             if manage_busy:
                 self.busy_changed.emit(False)
@@ -230,6 +236,7 @@ class MPC220Controller(QObject):
         self.port_manager = port_manager
         self._port = None
         self._connected = False
+        self._optimizing = False
         self._mdt_controller = None
         self._measurement_controller = None
         self._tc200_controller = None
@@ -254,6 +261,7 @@ class MPC220Controller(QObject):
         self.worker.optimizer_finished.connect(panel.show_optimization_result)
         self.worker.optimizer_error.connect(panel.show_optimization_error)
         self.worker.optimizer_active_changed.connect(panel.set_optimizing)
+        self.worker.optimizer_active_changed.connect(self._on_optimizer_active)
         self.thread.finished.connect(self.worker.deleteLater)
         self.thread.start()
         panel.refresh_requested.connect(self.refresh_ports)
@@ -291,11 +299,31 @@ class MPC220Controller(QObject):
         if missing:
             self.panel.show_optimization_error("Brak: " + ", ".join(missing) + ".")
             return
+        self._optimizing = True
         self.request_optimizer_start.emit()
 
     @Slot()
     def cancel_optimization(self) -> None:
         self.request_optimizer_cancel.emit()
+
+    def is_connected(self) -> bool:
+        return self._connected
+
+    def is_optimizing(self) -> bool:
+        return self._optimizing
+
+    @Slot(bool)
+    def _on_optimizer_active(self, active: bool) -> None:
+        self._optimizing = active
+
+    @Slot(int, float)
+    def set_angle(self, paddle_number: int, angle_deg: float) -> None:
+        """Publiczny adapter dla procedur; wykorzystuje istniejącą kolejkę workera."""
+        if paddle_number not in (1, 2) or not math.isfinite(angle_deg):
+            raise ValueError("Nieprawidłowa łopatka lub kąt MPC220.")
+        if not MPC_MIN_ANGLE_DEG <= angle_deg <= MPC_MAX_ANGLE_DEG:
+            raise ValueError("Kąt MPC220 poza zakresem kalibracji.")
+        self.request_set_angle.emit(paddle_number, angle_deg)
 
     @Slot()
     def refresh_ports(self) -> None:
