@@ -1,0 +1,16 @@
+parametr,wartosc
+algorytm,coarse_to_fine_grid
+piezo_min_v,0.000
+piezo_max_v,70.000
+prog_amplitudy_v,0.400000
+pozycja_startowa_p1_deg,80.000
+pozycja_startowa_p2_deg,80.000
+prog_osiagniety,True
+czas_calkowity_s,115.329
+liczba_pomiarow_fizycznych,8
+liczba_unikalnych_punktow_mpc,7
+stopien_przeszukania_pct,8.642
+maksymalna_amplituda_v,0.423023
+score_dla_maksimum,0.098814
+p1_dla_maksimum_deg,1.000
+p2_dla_maksimum_deg,106.972

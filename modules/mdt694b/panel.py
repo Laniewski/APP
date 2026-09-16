@@ -69,6 +69,7 @@ class MDT694BPanel(QGroupBox):
         self._connected = False
         self._busy = False
         self._ramp_active = False
+        self._optimization_locked = False
         self.set_connected(False)
 
     def _request_connect(self) -> None:
@@ -120,6 +121,13 @@ class MDT694BPanel(QGroupBox):
         self.mdt_stop_ramp_button.setEnabled(
             self._connected and not self._busy and self._ramp_active
         )
+        if self._optimization_locked:
+            for button in self.findChildren(QPushButton):
+                button.setEnabled(False)
+
+    def set_optimization_locked(self, locked: bool) -> None:
+        self._optimization_locked = bool(locked)
+        self._apply_state()
 
     def set_ramp_active(self, active: bool) -> None:
         self._ramp_active = bool(active)

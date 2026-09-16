@@ -14,6 +14,8 @@ class MPC220Panel(QGroupBox):
     disconnect_requested = Signal()
     set_angle_requested = Signal(int, float)
     adjust_angle_requested = Signal(int, float)
+    optimization_requested = Signal()
+    optimization_cancel_requested = Signal()
 
     def __init__(self) -> None:
         super().__init__("MPC220 — kontroler polaryzacji")
@@ -29,14 +31,22 @@ class MPC220Panel(QGroupBox):
         ports.addWidget(self.connect_button)
         ports.addWidget(self.disconnect_button)
         layout.addLayout(ports)
+        self.optimization_button = QPushButton("Automatyczna optymalizacja")
+        self.optimization_status = QLabel("")
+        self.optimization_status.setWordWrap(True)
+        self.optimization_status.hide()
+        layout.addWidget(self.optimization_button)
+        layout.addWidget(self.optimization_status)
         self._movement_widgets = []
         for paddle in (1, 2):
             layout.addWidget(self._create_paddle_panel(paddle))
         self.refresh_button.clicked.connect(self.refresh_requested)
         self.connect_button.clicked.connect(self._request_connect)
         self.disconnect_button.clicked.connect(self.disconnect_requested)
+        self.optimization_button.clicked.connect(self._toggle_optimization)
         self._connected = False
         self._busy = False
+        self._optimizing = False
         self.set_connected(False)
 
     def _create_paddle_panel(self, paddle: int) -> QGroupBox:
@@ -99,9 +109,43 @@ class MPC220Panel(QGroupBox):
         self.port_combo.setEnabled(not self._connected and not self._busy and has_port)
         self.refresh_button.setEnabled(not self._connected and not self._busy)
         self.connect_button.setEnabled(not self._connected and not self._busy and has_port)
-        self.disconnect_button.setEnabled(self._connected and not self._busy)
+        self.disconnect_button.setEnabled(self._connected and not self._busy and not self._optimizing)
+        # Pozostaje dostępny także przed połączeniem, aby kliknięcie mogło
+        # wyświetlić kompletną listę brakujących urządzeń.
+        self.optimization_button.setEnabled(not self._busy)
         for widget in self._movement_widgets:
-            widget.setEnabled(self._connected and not self._busy)
+            widget.setEnabled(self._connected and not self._busy and not self._optimizing)
+
+    def _toggle_optimization(self) -> None:
+        if self._optimizing:
+            self.optimization_cancel_requested.emit()
+        else:
+            self.optimization_requested.emit()
+
+    def set_optimizing(self, optimizing: bool) -> None:
+        self._optimizing = bool(optimizing)
+        self.optimization_button.setText(
+            "Anuluj optymalizację" if optimizing else "Automatyczna optymalizacja"
+        )
+        if optimizing:
+            self.optimization_status.clear()
+            self.optimization_status.hide()
+        self._apply_state()
+
+    def show_optimization_progress(self, progress: dict) -> None:
+        # Postęp nie jest wyświetlany; panel pozostaje możliwie mały.
+        pass
+
+    def show_optimization_result(self, result: dict) -> None:
+        self.set_optimizing(False)
+        self.optimization_status.clear()
+        self.optimization_status.hide()
+
+    def show_optimization_error(self, message: str) -> None:
+        self.set_optimizing(False)
+        self.optimization_status.setText(message)
+        self.optimization_status.show()
+        self.show_error(message)
 
     def show_position(self, paddle_number: int, angle_deg: float) -> None:
         getattr(self, f"position_{paddle_number}").setText(f"{angle_deg:.1f}°")

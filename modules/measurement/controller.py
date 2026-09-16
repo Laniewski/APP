@@ -109,6 +109,13 @@ class MeasurementController(QObject):
         self._sample_interval_ms = sample_interval_ms
         self._measurement_start = time.perf_counter()
         self._running = False
+        self._active_channel_keys = self.panel.get_selected_measurement_channels()
+        self._latest_temperature_c: float | None = None
+        self._latest_piezo_voltage_v: float | None = None
+        self._latest_paddle_angles_deg: dict[int, float | None] = {
+            1: None,
+            2: None,
+        }
         self._thread = QThread(self)
         self.thread = self._thread
         self.worker = MeasurementWorker(self._driver_factory, sample_interval_ms)
@@ -146,6 +153,8 @@ class MeasurementController(QObject):
             return
         self._measurement_start = time.perf_counter()
         self.buffer.clear()
+        self._active_channel_keys = self.panel.get_selected_measurement_channels()
+        logger.debug("Selected channels: %s", self._active_channel_keys)
         self._running = True
         self.panel.set_measurement_running(True)
         self.request_start.emit()
@@ -165,9 +174,39 @@ class MeasurementController(QObject):
 
     def _on_sample_ready(self, in0: float, in1: float) -> None:
         relative_time = time.perf_counter() - self._measurement_start
-        self.buffer.add_sample(relative_time, in0, in1)
+        values = {
+            "in0_v": float(in0),
+            "in1_v": float(in1),
+            # Wolniejsze urządzenia są odpytywane przez ich istniejące workery.
+            # Rekord wykorzystuje ostatnią opublikowaną wartość, bez blokowania ADS1263.
+            "temperature_c": self._latest_temperature_c,
+            "piezo_voltage_v": self._latest_piezo_voltage_v,
+            "paddle_1_angle_deg": self._latest_paddle_angles_deg[1],
+            "paddle_2_angle_deg": self._latest_paddle_angles_deg[2],
+        }
+        selected_values = {key: values[key] for key in self._active_channel_keys}
+        # IN0/IN1 pozostają w tym samym rekordzie jako źródło głównego wykresu,
+        # nawet jeśli użytkownik wyłączy ich kolumny w eksporcie.
+        selected_values.setdefault("in0_v", float(in0))
+        selected_values.setdefault("in1_v", float(in1))
+        record = self.buffer.add_record(relative_time, selected_values)
+        if len(self.buffer.get_records()) == 1:
+            logger.debug("First measurement record: %s", record)
         times, in0_values, in1_values = self.buffer.get_all_data()
         self.panel.update_plot(times, in0_values, in1_values)
+
+    @Slot(float, float)
+    def update_tc200_readings(self, temperature_c: float, _setpoint_c: float) -> None:
+        self._latest_temperature_c = float(temperature_c)
+
+    @Slot(float)
+    def update_piezo_voltage(self, voltage_v: float) -> None:
+        self._latest_piezo_voltage_v = float(voltage_v)
+
+    @Slot(int, float)
+    def update_paddle_angle(self, paddle_number: int, angle_deg: float) -> None:
+        if paddle_number in self._latest_paddle_angles_deg:
+            self._latest_paddle_angles_deg[paddle_number] = float(angle_deg)
 
     def _on_started(self) -> None:
         if not self._running:
@@ -188,16 +227,27 @@ class MeasurementController(QObject):
     def save_csv(self, file_path: str | None = None) -> None:
         if not file_path:
             return
-        times, in0_values, in1_values = self.buffer.get_all_data()
-        if not times:
+        records = self.buffer.get_records()
+        if not records:
             self.panel.show_error("Brak danych do zapisania.")
             return
+        fieldnames = ["time_s", *self._active_channel_keys]
+        logger.debug("Records before export: %d", len(records))
+        logger.debug("First record keys before export: %s", list(records[0]))
+        logger.debug("CSV columns: %s", fieldnames)
         with open(file_path, "w", encoding="utf-8", newline="") as handle:
-            writer = csv.writer(handle)
-            writer.writerow(["time_s", "in0_v", "in1_v"])
-            for time_value, in0, in1 in zip(times, in0_values, in1_values):
-                writer.writerow([f"{float(time_value):.6f}", f"{float(in0):.6f}", f"{float(in1):.6f}"])
+            writer = csv.DictWriter(handle, fieldnames=fieldnames)
+            writer.writeheader()
+            for record in records:
+                writer.writerow({
+                    key: self._format_csv_value(record.get(key))
+                    for key in fieldnames
+                })
         logger.info("Zapisano dane pomiarowe do %s", file_path)
+
+    @staticmethod
+    def _format_csv_value(value: float | None) -> str:
+        return "" if value is None else f"{float(value):.6f}"
 
     def shutdown(self, timeout_ms: int = 3000) -> None:
         if self._thread.isRunning():

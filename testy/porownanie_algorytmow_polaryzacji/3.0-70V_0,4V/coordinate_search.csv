@@ -1,0 +1,16 @@
+parametr,wartosc
+algorytm,coordinate_search
+piezo_min_v,0.000
+piezo_max_v,70.000
+prog_amplitudy_v,0.400000
+pozycja_startowa_p1_deg,80.000
+pozycja_startowa_p2_deg,80.000
+prog_osiagniety,True
+czas_calkowity_s,214.565
+liczba_pomiarow_fizycznych,16
+liczba_unikalnych_punktow_mpc,15
+stopien_przeszukania_pct,18.519
+maksymalna_amplituda_v,0.423453
+score_dla_maksimum,0.099379
+p1_dla_maksimum_deg,19.960
+p2_dla_maksimum_deg,40.040

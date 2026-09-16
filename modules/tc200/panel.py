@@ -38,6 +38,8 @@ class TC200Panel(QGroupBox):
         self.device_details = QLabel("Stan urządzenia: —")
         self.alarm_label = QLabel("Alarmy: brak")
         self.alarm_label.setWordWrap(True)
+        self._connected = False
+        self._optimization_locked = False
 
         layout.addWidget(QLabel("Port:"), 0, 0)
         layout.addWidget(self.port_combo, 0, 1)
@@ -83,6 +85,7 @@ class TC200Panel(QGroupBox):
         self.connect_button.setEnabled(bool(ports))
 
     def set_connected(self, connected: bool) -> None:
+        self._connected = bool(connected)
         self.port_combo.setEnabled(not connected and self.port_combo.currentData() is not None)
         self.refresh_button.setEnabled(not connected)
         self.connect_button.setEnabled(not connected and self.port_combo.currentData() is not None)
@@ -93,11 +96,24 @@ class TC200Panel(QGroupBox):
         if not connected:
             self.heater_button.setChecked(False)
             self.heater_button.setText("Włącz grzanie")
+        self._apply_optimization_lock()
 
     def set_busy(self, text: str) -> None:
         self.status_label.setText(text)
         for widget in (self.connect_button, self.disconnect_button, self.set_button, self.heater_button):
             widget.setEnabled(False)
+
+    def set_optimization_locked(self, locked: bool) -> None:
+        self._optimization_locked = bool(locked)
+        if locked:
+            self._apply_optimization_lock()
+        else:
+            self.set_connected(self._connected)
+
+    def _apply_optimization_lock(self) -> None:
+        if self._optimization_locked:
+            for button in self.findChildren(QPushButton):
+                button.setEnabled(False)
 
     def show_readings(self, current: float, setpoint: float) -> None:
         self.current_label.setText(f"{current:.1f} °C")

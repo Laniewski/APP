@@ -121,6 +121,8 @@ class TC200Controller(QObject):
         self.port_manager = port_manager
         self._port = None
         self._closing = False
+        self._connected = False
+        self._heater_enabled: bool | None = None
 
         self.thread = QThread(self)
         self.worker = worker_factory()
@@ -134,6 +136,7 @@ class TC200Controller(QObject):
         self.worker.disconnected.connect(self._on_disconnected)
         self.worker.readings.connect(panel.show_readings)
         self.worker.status.connect(panel.show_status)
+        self.worker.status.connect(self._on_status)
         self.worker.operation_finished.connect(self._on_operation_finished)
         self.worker.error.connect(self._on_error)
         self.thread.finished.connect(self.worker.deleteLater)
@@ -187,12 +190,15 @@ class TC200Controller(QObject):
 
     @Slot(str)
     def _on_connected(self, identity: str) -> None:
+        self._connected = True
         logger.info("Połączono z %s", identity)
         self.panel.status_label.setText("Połączono")
         self.panel.set_connected(True)
 
     @Slot()
     def _on_disconnected(self) -> None:
+        self._connected = False
+        self._heater_enabled = None
         self._release_port()
         self.panel.status_label.setText("Rozłączono")
         self.panel.set_connected(False)
@@ -206,10 +212,20 @@ class TC200Controller(QObject):
 
     @Slot(str)
     def _on_error(self, message: str) -> None:
+        self._connected = False
+        self._heater_enabled = None
         self._release_port()
         self.panel.show_error(message)
         self.panel.set_connected(False)
         logger.error("TC200: %s", message)
+
+    @Slot(object)
+    def _on_status(self, status) -> None:
+        self._heater_enabled = bool(status.heater_enabled)
+
+    def is_heater_confirmed_off(self) -> bool:
+        """Odłączony TC200 lub potwierdzone wyłączenie oznacza stan bezpieczny."""
+        return not self._connected or self._heater_enabled is False
 
     def _release_port(self) -> None:
         if self._port is not None:

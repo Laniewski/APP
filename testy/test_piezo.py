@@ -1,6 +1,12 @@
 import csv
+import sys
 import time
 from datetime import datetime
+from pathlib import Path
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 
 from modules.mdt694b.driver import MDT694BDriver
 
@@ -41,8 +47,17 @@ PAUSE_BETWEEN_TESTS_S = 3.0
 BASELINE_BEFORE_S = 5.0
 BASELINE_AFTER_S = 5.0
 
-# Plik pomocniczy zapisujący dokładne momenty testów.
-LOG_FILE = "piezo_speed_test_log.csv"
+# Katalog na logi zapisujące dokładne momenty testów.
+OUTPUT_DIR = ROOT_DIR / "dane/piezo_speed"
+
+
+def next_attempt_number():
+    attempts = []
+    for path in OUTPUT_DIR.glob("piezo_speed_log_*.csv"):
+        parts = path.stem.split("_")
+        if len(parts) >= 6 and parts[-3].isdigit():
+            attempts.append(int(parts[-3]))
+    return max(attempts, default=0) + 1
 
 
 # ============================================================
@@ -184,6 +199,11 @@ def move_safely(driver, start_voltage, target_voltage):
 
 def main():
 
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    attempt = next_attempt_number()
+    log_path = OUTPUT_DIR / f"piezo_speed_log_{attempt:02d}_{timestamp}.csv"
+
     print()
     print("==============================================")
     print("      AUTOMATYCZNY TEST PRĘDKOŚCI PIEZO")
@@ -203,7 +223,7 @@ def main():
     script_start = time.monotonic()
 
     log_file = open(
-        LOG_FILE,
+        log_path,
         "w",
         newline="",
         encoding="utf-8",
@@ -549,7 +569,7 @@ def main():
         print()
         print(
             f"Log testu zapisano jako: "
-            f"{LOG_FILE}"
+            f"{log_path}"
         )
 
     except KeyboardInterrupt:

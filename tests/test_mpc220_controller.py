@@ -64,6 +64,42 @@ class MPC220ControllerTests(unittest.TestCase):
         controller.shutdown()
         self.assertFalse(controller.thread.isRunning())
 
+    def test_worker_logs_one_success_summary(self):
+        worker = MPC220Worker(FakeDriver)
+        result = {
+            "status": "SUCCESS",
+            "best_amplitude_v": 0.432,
+            "best_p1_deg": 126.4,
+            "best_p2_deg": 52.7,
+            "best_measurement_time_s": 31.4,
+            "total_time_s": 38.2,
+        }
+        with self.assertLogs("modules.mpc220.controller", level="INFO") as logs:
+            worker._optimizer_done(result)
+        self.assertEqual(len(logs.output), 1)
+        self.assertIn("A_D max = 0.432 V", logs.output[0])
+        self.assertIn("Czas całkowity = 38.200 s", logs.output[0])
+
+    def test_worker_logs_not_found_cancelled_and_error(self):
+        worker = MPC220Worker(FakeDriver)
+        not_found = {
+            "status": "NOT_FOUND",
+            "best_amplitude_v": 0.387,
+            "best_p1_deg": 20.0,
+            "best_p2_deg": 125.0,
+            "best_measurement_time_s": 45.0,
+            "total_time_s": 52.0,
+        }
+        with self.assertLogs("modules.mpc220.controller", level="INFO") as logs:
+            worker._optimizer_done(not_found)
+            worker._optimizer_done({"status": "CANCELLED"})
+            worker._optimizer_failed("utrata połączenia")
+        self.assertEqual(len(logs.output), 3)
+        self.assertIn("nie osiągnięto kryterium", logs.output[0])
+        self.assertIn("Najlepsze A_D = 0.387 V", logs.output[0])
+        self.assertIn("anulowana", logs.output[1])
+        self.assertIn("zakończona błędem: utrata połączenia", logs.output[2])
+
 
 if __name__ == "__main__":
     unittest.main()

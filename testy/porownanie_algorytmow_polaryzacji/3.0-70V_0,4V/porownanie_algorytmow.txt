@@ -1,0 +1,75 @@
+POROWNANIE ALGORYTMOW DOBORU POLARYZACJI
+==============================================================================
+
+PARAMETRY TESTU
+------------------------------------------------------------------------------
+PIEZO_MIN_V:               0.000 V
+PIEZO_MAX_V:               70.000 V
+TARGET_AMPLITUDE_V:        0.400 V
+START_ANGLE_1:             80.000 deg
+START_ANGLE_2:             80.000 deg
+Pelne przeszukanie:        81 punktow = 100%
+Maksymalny budzet awaryjny: 20 punktow
+
+Algorytm konczy prace natychmiast po potwierdzonym osiagnieciu zadanego progu.
+Pomiar potwierdzajacy liczy sie jako dodatkowy pomiar fizyczny.
+Stopien przeszukania jest liczony z liczby unikalnych nastaw MPC wzgledem 81 punktow mapy referencyjnej.
+
+==============================================================================
+WYNIKI
+==============================================================================
+
+coarse_to_fine_grid
+------------------------------------------------------------------------------
+Prog osiagniety:                   True
+Czas:                              115.33 s
+Liczba pomiarow fizycznych:        8
+Liczba unikalnych punktow MPC:     7
+Stopien przeszukania:              8.64%
+Najlepsza amplituda A_D:           0.423023 V
+Score dla najlepszego wyniku:      0.098814
+P1 dla maksimum:                   1.000 deg
+P2 dla maksimum:                   106.972 deg
+
+coordinate_search
+------------------------------------------------------------------------------
+Prog osiagniety:                   True
+Czas:                              214.57 s
+Liczba pomiarow fizycznych:        16
+Liczba unikalnych punktow MPC:     15
+Stopien przeszukania:              18.52%
+Najlepsza amplituda A_D:           0.423453 V
+Score dla najlepszego wyniku:      0.099379
+P1 dla maksimum:                   19.960 deg
+P2 dla maksimum:                   40.040 deg
+
+hooke_jeeves
+------------------------------------------------------------------------------
+Prog osiagniety:                   False
+Czas:                              283.33 s
+Liczba pomiarow fizycznych:        22
+Liczba unikalnych punktow MPC:     20
+Stopien przeszukania:              24.69%
+Najlepsza amplituda A_D:           0.394620 V
+Score dla najlepszego wyniku:      0.090717
+P1 dla maksimum:                   100.040 deg
+P2 dla maksimum:                   39.920 deg
+
+==============================================================================
+KROTKIE POROWNANIE
+==============================================================================
+
+Najszybszy algorytm:
+  coarse_to_fine_grid - 115.33 s
+
+Najmniej pomiarow fizycznych:
+  coarse_to_fine_grid - 8
+
+Najmniejszy stopien przeszukania:
+  coarse_to_fine_grid - 8.64% (7 punktow)
+
+Najwyzsza znaleziona amplituda:
+  algorytm: coordinate_search
+  A_D: 0.423453 V
+  P1: 19.960 deg
+  P2: 40.040 deg

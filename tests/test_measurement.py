@@ -1,3 +1,4 @@
+import csv
 import os
 import tempfile
 import threading
@@ -10,6 +11,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtCore import QTimer, QEventLoop
 from PySide6.QtWidgets import QApplication
 
+from app.measurement.channels import MEASUREMENT_CHANNELS
 from modules.measurement.controller import MeasurementController, MeasurementWorker
 from modules.measurement.data_buffer import DataBuffer
 from modules.measurement.driver import ADS1263Driver
@@ -260,6 +262,174 @@ class MeasurementControllerTests(unittest.TestCase):
             controller.stop_measurement()
             self.app.processEvents()
             self.assertFalse(controller.is_running())
+        finally:
+            controller.shutdown(timeout_ms=500)
+
+    def test_channel_defaults_and_locking_during_measurement(self):
+        self.assertEqual(
+            [channel.key for channel in MEASUREMENT_CHANNELS],
+            [
+                "in0_v",
+                "in1_v",
+                "temperature_c",
+                "piezo_voltage_v",
+                "paddle_1_angle_deg",
+                "paddle_2_angle_deg",
+            ],
+        )
+        self.assertEqual(
+            self.panel.get_selected_measurement_channels(),
+            ["in0_v", "in1_v"],
+        )
+        controller = MeasurementController(
+            self.panel,
+            driver_factory=FakeDriver,
+            sample_interval_ms=1000,
+        )
+        try:
+            self.panel.measurement_channel_checkboxes["temperature_c"].setChecked(True)
+            controller.start_measurement()
+            self.assertEqual(
+                controller._active_channel_keys,
+                ["in0_v", "in1_v", "temperature_c"],
+            )
+            self.assertTrue(all(
+                not checkbox.isEnabled()
+                for checkbox in self.panel.measurement_channel_checkboxes.values()
+            ))
+            controller.stop_measurement()
+            self.assertTrue(all(
+                checkbox.isEnabled()
+                for checkbox in self.panel.measurement_channel_checkboxes.values()
+            ))
+        finally:
+            controller.shutdown(timeout_ms=500)
+
+    def test_dynamic_csv_channel_combinations_use_cached_device_values(self):
+        controller = MeasurementController(
+            self.panel,
+            driver_factory=FakeDriver,
+            sample_interval_ms=1000,
+        )
+        try:
+            controller.update_tc200_readings(24.7, 25.0)
+            controller.update_piezo_voltage(12.5)
+            combinations = (
+                (["in0_v", "in1_v"], ["time_s", "in0_v", "in1_v"]),
+                (
+                    ["in0_v", "in1_v", "temperature_c"],
+                    ["time_s", "in0_v", "in1_v", "temperature_c"],
+                ),
+                (
+                    ["in0_v", "in1_v", "piezo_voltage_v"],
+                    ["time_s", "in0_v", "in1_v", "piezo_voltage_v"],
+                ),
+                (
+                    ["in0_v", "in1_v", "temperature_c", "piezo_voltage_v"],
+                    ["time_s", "in0_v", "in1_v", "temperature_c", "piezo_voltage_v"],
+                ),
+            )
+            for selected, expected_header in combinations:
+                controller.clear_data()
+                controller._active_channel_keys = selected
+                controller._measurement_start = time.perf_counter()
+                controller._on_sample_ready(2.13, 2.08)
+                with tempfile.NamedTemporaryFile("w", suffix=".csv", delete=False) as tmp:
+                    path = tmp.name
+                try:
+                    controller.save_csv(path)
+                    with open(path, newline="", encoding="utf-8") as handle:
+                        rows = list(csv.reader(handle))
+                    self.assertEqual(rows[0], expected_header)
+                    self.assertEqual(len(rows[1]), len(expected_header))
+                    if "temperature_c" in selected:
+                        self.assertEqual(rows[1][expected_header.index("temperature_c")], "24.700000")
+                    if "piezo_voltage_v" in selected:
+                        self.assertEqual(rows[1][expected_header.index("piezo_voltage_v")], "12.500000")
+                    self.assertEqual(len(self.panel.in0_curve.getData()[0]), 1)
+                    self.assertEqual(len(self.panel.in1_curve.getData()[0]), 1)
+                finally:
+                    os.remove(path)
+        finally:
+            controller.shutdown(timeout_ms=500)
+
+    def test_later_export_uses_values_captured_in_session_buffer(self):
+        controller = MeasurementController(
+            self.panel,
+            driver_factory=FakeDriver,
+            sample_interval_ms=1000,
+        )
+        try:
+            controller._active_channel_keys = [
+                "in0_v",
+                "in1_v",
+                "temperature_c",
+                "piezo_voltage_v",
+            ]
+            controller.update_tc200_readings(24.7, 25.0)
+            controller.update_piezo_voltage(10.0)
+            controller._measurement_start = time.perf_counter()
+            controller._on_sample_ready(2.13, 2.08)
+
+            # Późniejsze wartości nie mogą zmienić już zarejestrowanego rekordu.
+            controller.update_tc200_readings(99.0, 99.0)
+            controller.update_piezo_voltage(88.0)
+
+            with tempfile.NamedTemporaryFile("w", suffix=".csv", delete=False) as tmp:
+                path = tmp.name
+            try:
+                with self.assertLogs("modules.measurement.controller", level="DEBUG") as logs:
+                    controller.save_csv(path)
+                with open(path, newline="", encoding="utf-8") as handle:
+                    rows = list(csv.DictReader(handle))
+                self.assertEqual(rows[0]["temperature_c"], "24.700000")
+                self.assertEqual(rows[0]["piezo_voltage_v"], "10.000000")
+                self.assertTrue(any("Records before export: 1" in line for line in logs.output))
+                self.assertTrue(any("CSV columns:" in line for line in logs.output))
+            finally:
+                os.remove(path)
+        finally:
+            controller.shutdown(timeout_ms=500)
+
+    def test_selected_paddle_angles_are_exported_from_session_record(self):
+        controller = MeasurementController(
+            self.panel,
+            driver_factory=FakeDriver,
+            sample_interval_ms=1000,
+        )
+        try:
+            controller._active_channel_keys = [
+                "in0_v",
+                "in1_v",
+                "paddle_1_angle_deg",
+                "paddle_2_angle_deg",
+            ]
+            controller.update_paddle_angle(1, 12.5)
+            controller.update_paddle_angle(2, 87.25)
+            controller._measurement_start = time.perf_counter()
+            controller._on_sample_ready(2.13, 2.08)
+            controller.update_paddle_angle(1, 99.0)
+
+            with tempfile.NamedTemporaryFile("w", suffix=".csv", delete=False) as tmp:
+                path = tmp.name
+            try:
+                controller.save_csv(path)
+                with open(path, newline="", encoding="utf-8") as handle:
+                    rows = list(csv.DictReader(handle))
+                self.assertEqual(
+                    list(rows[0]),
+                    [
+                        "time_s",
+                        "in0_v",
+                        "in1_v",
+                        "paddle_1_angle_deg",
+                        "paddle_2_angle_deg",
+                    ],
+                )
+                self.assertEqual(rows[0]["paddle_1_angle_deg"], "12.500000")
+                self.assertEqual(rows[0]["paddle_2_angle_deg"], "87.250000")
+            finally:
+                os.remove(path)
         finally:
             controller.shutdown(timeout_ms=500)
 

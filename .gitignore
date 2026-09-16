@@ -8,3 +8,9 @@ venv/
 *.log
 
 .vscode/
+
+# Legacy output locations (new measurements are stored under dane/).
+/data/
+/fast_polarization_results/
+/polarization_reference_results/
+/piezo_speed_test_log.csv

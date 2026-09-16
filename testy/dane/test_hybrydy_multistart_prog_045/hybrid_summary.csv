@@ -1,0 +1,2 @@
+stop_reason,successful_seed_id,successful_seed_name,best_A_D_v,best_p1_deg,best_p2_deg,best_measurement_time_s,total_time_s,windows_total,starts_used
+all_start_points_exhausted,,,0.40196460026873504,133.98406374501988,49.960159362549796,nan,205.1131599279979,44,4

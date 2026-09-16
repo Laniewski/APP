@@ -1,9 +1,14 @@
 import argparse
 import csv
 import math
+import sys
 import time
 from datetime import datetime
 from pathlib import Path
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 
 from modules.mdt694b.driver import MDT694BDriver
 from modules.measurement.driver import ADS1263Driver
@@ -50,7 +55,16 @@ COARSE_STEP_DEG = 20.0
 
 
 # Folder wyników
-OUTPUT_DIR = Path("polarization_reference_results")
+OUTPUT_DIR = ROOT_DIR / "dane/polarization_reference"
+
+
+def next_attempt_number():
+    attempts = []
+    for path in OUTPUT_DIR.glob("polarization_reference_*_*.csv"):
+        parts = path.stem.split("_")
+        if len(parts) >= 6 and parts[-3].isdigit():
+            attempts.append(int(parts[-3]))
+    return max(attempts, default=0) + 1
 
 
 # ============================================================
@@ -527,14 +541,16 @@ def main():
         "%Y%m%d_%H%M%S"
     )
 
+    attempt = next_attempt_number()
+
     measurement_path = (
         OUTPUT_DIR
-        / f"measurement_v2_{timestamp}.csv"
+        / f"polarization_reference_raw_{attempt:02d}_{timestamp}.csv"
     )
 
     report_path = (
         OUTPUT_DIR
-        / f"polarization_report_v2_{timestamp}.csv"
+        / f"polarization_reference_report_{attempt:02d}_{timestamp}.csv"
     )
 
     # ========================================================

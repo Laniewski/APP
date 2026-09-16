@@ -3,6 +3,7 @@
 import pyqtgraph as pg
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
+    QCheckBox,
     QFileDialog,
     QGroupBox,
     QHBoxLayout,
@@ -11,6 +12,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.measurement.channels import MEASUREMENT_CHANNELS
 from app.widgets.log_panel import LogPanel
 
 
@@ -37,6 +39,8 @@ class MeasurementPanel(QWidget):
         self.plot_widget.setMenuEnabled(False)
         self.plot_widget.getPlotItem().getViewBox().setMouseMode(pg.ViewBox.RectMode)
         self._auto_view_enabled = True
+        self._measurement_running = False
+        self._optimization_locked = False
 
         self.plot_widget.addLegend(offset=(10, 10))
         self.plot_widget.getPlotItem().legend.setBrush((30, 35, 42, 180))
@@ -54,6 +58,7 @@ class MeasurementPanel(QWidget):
         ads_layout.addWidget(self.plot_widget)
 
         layout.addWidget(self.ads1263_panel)
+        layout.addWidget(self._create_channel_selection())
         layout.addLayout(self._create_measurement_buttons())
         self.log_panel = LogPanel()
         self.log_output = self.log_panel.log_output
@@ -63,6 +68,24 @@ class MeasurementPanel(QWidget):
         self.plot_widget.getPlotItem().getViewBox().sigRangeChangedManually.connect(self._on_manual_range_changed)
         self._update_auto_button()
         self.set_measurement_running(False)
+
+    def _create_channel_selection(self) -> QGroupBox:
+        group = QGroupBox("Dane rejestrowane podczas pomiaru")
+        layout = QVBoxLayout(group)
+        self.measurement_channel_checkboxes = {}
+        for channel in MEASUREMENT_CHANNELS:
+            checkbox = QCheckBox(f"{channel.label} [{channel.unit}]")
+            checkbox.setChecked(channel.default_enabled)
+            self.measurement_channel_checkboxes[channel.key] = checkbox
+            layout.addWidget(checkbox)
+        return group
+
+    def get_selected_measurement_channels(self) -> list[str]:
+        return [
+            channel.key
+            for channel in MEASUREMENT_CHANNELS
+            if self.measurement_channel_checkboxes[channel.key].isChecked()
+        ]
 
     def _create_measurement_buttons(self) -> QHBoxLayout:
         layout = QHBoxLayout()
@@ -87,8 +110,18 @@ class MeasurementPanel(QWidget):
         return layout
 
     def set_measurement_running(self, running: bool) -> None:
+        self._measurement_running = bool(running)
         self.measurement_start_button.setEnabled(not running)
-        self.measurement_stop_button.setEnabled(running)
+        self.measurement_stop_button.setEnabled(running and not self._optimization_locked)
+        for checkbox in self.measurement_channel_checkboxes.values():
+            checkbox.setEnabled(not running)
+        if self._optimization_locked:
+            for button in self.findChildren(QPushButton):
+                button.setEnabled(False)
+
+    def set_optimization_locked(self, locked: bool) -> None:
+        self._optimization_locked = bool(locked)
+        self.set_measurement_running(self._measurement_running)
 
     def _set_auto_view_enabled(self, enabled: bool) -> None:
         self._auto_view_enabled = bool(enabled)

@@ -229,6 +229,7 @@ class MDT694BController(QObject):
         self.panel = panel
         self.port_manager = port_manager
         self._port = None
+        self._connected = False
         self.thread = QThread(self)
         self.worker = worker_factory()
         self.worker.moveToThread(self.thread)
@@ -295,17 +296,23 @@ class MDT694BController(QObject):
     def stop_ramp(self) -> None:
         self.request_stop_ramp.emit()
 
+    def is_connected(self) -> bool:
+        return self._connected
+
     @Slot()
     def _on_connected(self) -> None:
+        self._connected = True
         self.panel.set_connected(True)
 
     @Slot()
     def _on_disconnected(self) -> None:
+        self._connected = False
         self._release_port()
         self.panel.set_connected(False)
 
     @Slot(str)
     def _on_error(self, message: str) -> None:
+        self._connected = False
         self._release_port()
         self.panel.set_connected(False)
         self.panel.show_error(message)

@@ -1,0 +1,3 @@
+seed_id,seed_name,seed_p1_deg,seed_p2_deg,result,best_A_D_v,best_p1_deg,best_p2_deg,attempt_time_s
+1,lower_left,25.0,45.0,adaptive_timeout,0.38774742460239087,42.90836653386454,44.9402390438247,15.762071211000148
+2,lower_right,125.0,50.0,maximum_found,0.40186053090815477,146.53386454183268,49.960159362549796,11.7750848579999

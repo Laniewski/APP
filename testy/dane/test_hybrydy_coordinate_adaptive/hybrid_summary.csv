@@ -1,0 +1,2 @@
+start_p1_deg,start_p2_deg,coordinate_speed_deg_s,coordinate_target_v,adaptive_speed_deg_s,final_target_v,switch_time_s,best_A_D_v,best_p1_deg,best_p2_deg,best_window_id,best_measurement_time_s,convergence_time_s,stop_reason,windows_total,coordinate_windows,adaptive_windows
+80.0,80.0,5.0,0.35,2.0,0.4,15.73071051199986,0.40782857286177054,156.33466135458167,82.47011952191234,6,23.571959941000387,35.382154378999985,departed_from_maximum,9,4,5

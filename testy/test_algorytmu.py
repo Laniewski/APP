@@ -1,9 +1,14 @@
 import argparse
 import csv
 import math
+import sys
 import time
 from datetime import datetime
 from pathlib import Path
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 
 from modules.mdt694b.driver import MDT694BDriver
 from modules.measurement.driver import ADS1263Driver
@@ -22,7 +27,16 @@ from modules.mpc220.driver import MPC220Driver
 # KONFIGURACJA
 # ============================================================
 
-OUTPUT_DIR = Path("fast_polarization_results")
+OUTPUT_DIR = ROOT_DIR / "dane/polarization_search"
+
+
+def next_attempt_number():
+    attempts = []
+    for path in OUTPUT_DIR.glob("polarization_search_*_*.csv"):
+        parts = path.stem.split("_")
+        if len(parts) >= 6 and parts[-3].isdigit():
+            attempts.append(int(parts[-3]))
+    return max(attempts, default=0) + 1
 
 
 # ------------------------------------------------------------
@@ -630,14 +644,16 @@ def main():
         )
     )
 
+    attempt = next_attempt_number()
+
     report_path = (
         OUTPUT_DIR
-        / f"fast_search_report_{timestamp}.csv"
+        / f"polarization_search_report_{attempt:02d}_{timestamp}.csv"
     )
 
     raw_path = (
         OUTPUT_DIR
-        / f"fast_search_raw_{timestamp}.csv"
+        / f"polarization_search_raw_{attempt:02d}_{timestamp}.csv"
     )
 
     mpc = None

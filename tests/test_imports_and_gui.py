@@ -48,6 +48,7 @@ class ImportAndGuiTests(unittest.TestCase):
             "MDT694B — sterownik piezo",
             "MPC220 — kontroler polaryzacji",
             "ADS1263",
+            "Dane rejestrowane podczas pomiaru",
         }.issubset(panels))
         self.assertIsInstance(window.tc200_panel, TC200Panel)
         self.assertIsInstance(window.mpc220_panel, MPC220Panel)

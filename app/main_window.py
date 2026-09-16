@@ -2,6 +2,7 @@
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
+    QAbstractButton,
     QMainWindow,
     QScrollArea,
     QSplitter,
@@ -38,6 +39,25 @@ class MainWindow(QMainWindow):
         self.main_splitter.setStretchFactor(1, 2)
 
         main_layout.addWidget(self.main_splitter)
+        self._optimization_widget_states = None
+
+    def set_optimization_lock(self, active: bool) -> None:
+        """Blokuje przyciski GUI, pozostawiając wyłącznie anulowanie."""
+        optimization_button = self.mpc220_panel.optimization_button
+        if active:
+            if self._optimization_widget_states is None:
+                self._optimization_widget_states = {
+                    button: button.isEnabled()
+                    for button in self.findChildren(QAbstractButton)
+                    if button is not optimization_button
+                }
+            for button in self._optimization_widget_states:
+                button.setEnabled(False)
+            optimization_button.setEnabled(True)
+        elif self._optimization_widget_states is not None:
+            states, self._optimization_widget_states = self._optimization_widget_states, None
+            for button, enabled in states.items():
+                button.setEnabled(enabled)
 
     def _create_device_column(self) -> QWidget:
         content = QWidget()

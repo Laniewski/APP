@@ -1,0 +1,16 @@
+parametr,wartosc
+algorytm,hooke_jeeves
+piezo_min_v,0.000
+piezo_max_v,70.000
+prog_amplitudy_v,0.400000
+pozycja_startowa_p1_deg,80.000
+pozycja_startowa_p2_deg,80.000
+prog_osiagniety,False
+czas_calkowity_s,283.332
+liczba_pomiarow_fizycznych,22
+liczba_unikalnych_punktow_mpc,20
+stopien_przeszukania_pct,24.691
+maksymalna_amplituda_v,0.394620
+score_dla_maksimum,0.090717
+p1_dla_maksimum_deg,100.040
+p2_dla_maksimum_deg,39.920
