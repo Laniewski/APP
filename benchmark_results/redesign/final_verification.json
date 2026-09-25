@@ -1,0 +1,20 @@
+{
+  "benchmark_sources_unchanged": {
+    "modules/measurement_assistant/controller.py": true,
+    "modules/measurement_assistant/__init__.py": true,
+    "modules/measurement_assistant/runner.py": true,
+    "modules/measurement_assistant/panel.py": true,
+    "modules/measurement_assistant/actions.py": true,
+    "modules/measurement_assistant/backend.py": true,
+    "modules/measurement_assistant/grounding.py": true,
+    "modules/measurement_assistant/context_builder.py": true,
+    "modules/measurement_assistant/config.py": true,
+    "modules/measurement_assistant/script_builder.py": true,
+    "modules/measurement_assistant/plan_schema.py": true
+  },
+  "execution_default": false,
+  "before_cases": 12,
+  "after_cases": 12,
+  "raw_semantic_success": 7,
+  "final_semantic_success": 12
+}

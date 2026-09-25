@@ -8,10 +8,10 @@ import subprocess
 import threading
 import time
 
-from .context_builder import system_prompt
+from .context_builder import system_prompt, extraction_schema
+from .grounding import segments, grounded_plan
 from .config import AssistantConfig
-from .plan_schema import (parse_response, response_schema, requires_unsupported_stabilization,
-                          STABILIZATION_MISSING)
+from .plan_schema import parse_response
 
 logger = logging.getLogger(__name__)
 
@@ -83,17 +83,17 @@ class LLMBackend:
                 if self._closed.is_set() or self._cancelled.is_set():
                     raise RuntimeError("Backend asystenta został zatrzymany.")
                 if self._process is None or self._process.poll() is not None:
-                    self.config.model.parent.mkdir(parents=True, exist_ok=True)
+                    self.config.runs_dir.mkdir(parents=True, exist_ok=True)
                     if self._server_log:
                         self._server_log.close()
-                    self._server_log = open(self.config.model.parent / "llama-server.log", "a", encoding="utf-8")
+                    self._server_log = open(self.config.runs_dir / "llama-server.log", "a", encoding="utf-8")
                     self._process = subprocess.Popen([
                         str(self.config.binary), "-m", str(self.config.model),
                         "--host", "127.0.0.1", "--port", str(self.config.port),
                         "-c", str(self.config.context_size), "-t", str(self.config.threads),
                         "-b", "256", "-ub", "128",
                         "--cache-ram", "0",
-                        "-ngl", "0", "--parallel", "1",
+                        "-ngl", "0", "--parallel", "1", "--no-mmproj", "--reasoning", "off",
                     ], stdout=self._server_log, stderr=subprocess.STDOUT)
         deadline = time.monotonic() + 90
         while time.monotonic() < deadline:
@@ -112,7 +112,7 @@ class LLMBackend:
         self.last_metrics = {}
         if self._closed.is_set():
             raise RuntimeError("Backend asystenta został zamknięty.")
-        if not isinstance(request, str) or not 1 <= len(request.strip()) <= 4000:
+        if not isinstance(request, str) or not request.strip() or len(request) > 4000:
             raise ValueError("Opis musi zawierać od 1 do 4000 znaków.")
         self._cancelled.clear()
         if stop_event is not None and stop_event.is_set():
@@ -121,67 +121,76 @@ class LLMBackend:
         self.ensure_ready(status)
         status("Generowanie planu...")
         logger.info("Rozpoczęcie generowania planu.")
-        messages = [{"role": "system", "content": system_prompt()},
-                    {"role": "user", "content": request}]
-        if requires_unsupported_stabilization(request):
-            messages[-1]["content"] += (
-                "\nImportant: temperature stabilization is unsupported. Include only the supported "
-                "setpoint/piezo/measurement actions requested above, NO wait for stabilization. "
-                "missing_parameters must contain: " + STABILIZATION_MISSING
-            )
+        fragments = segments(request)
+        if len(fragments) > 50:
+            raise ValueError("Za dużo czynności; podziel polecenie (maksymalnie 50 fragmentów).")
         started = time.monotonic()
-        for attempt in range(2):
-            payload = {
-                "messages": messages, "temperature": 0.0, "max_tokens": 400,
-                "response_format": {"type": "json_object"},
-            }
-            if self.config.schema_in_response_format:
-                payload["response_format"]["schema"] = response_schema()
-            else:
-                payload["json_schema"] = response_schema()
-            response = self._request("POST", "/v1/chat/completions", payload)
-            elapsed = time.monotonic() - started
-            tokens = response.get("usage", {}).get("completion_tokens", 0)
-            timings = response.get("timings", {})
-            self.last_metrics = {"elapsed_s": elapsed, "completion_tokens": tokens,
-                                 "tokens_per_s": timings.get("predicted_per_second", tokens / elapsed if elapsed else 0)}
-            try:
-                text = response["choices"][0]["message"]["content"]
-                self.last_raw_response = text
-                plan = parse_response(text)
-            except (KeyError, IndexError, TypeError, ValueError) as exc:
-                logger.warning("Błąd JSON modelu (próba %s): %s", attempt + 1, exc)
-                if attempt:
-                    raise ValueError(f"Model dwukrotnie zwrócił niepoprawny JSON: {exc}") from exc
-                messages.append({"role": "user", "content": "Previous response was not valid JSON. Return only the required JSON object, no markdown."})
-                continue
-            elapsed = time.monotonic() - started
-            # Bezpieczeństwo nie zależy od przestrzegania promptu przez mały model.
-            # Zachowujemy odpowiedź do wglądu, ale żaden taki plan nie dostanie script.py.
-            if requires_unsupported_stabilization(request):
-                missing = plan.get("missing_parameters")
-                if isinstance(missing, list) and STABILIZATION_MISSING not in missing:
-                    missing.append(STABILIZATION_MISSING)
-                steps = plan.get("steps")
-                if isinstance(steps, list):
-                    kept = [step for step in steps if not (
-                        isinstance(step, dict) and step.get("action") == "wait"
-                        and requires_unsupported_stabilization(step.get("description"))
-                    )]
-                    if len(kept) != len(steps):
-                        plan["steps"] = kept
-                        if isinstance(plan.get("notes"), list):
-                            plan["notes"].append("Odrzucono błędny krok wait zastępujący stabilizację. Oryginalna odpowiedź jest w llm_response.json; plan pozostaje zablokowany.")
-                logger.warning("Plan stabilizacji zablokowany niezależnie od deklaracji LLM.")
-            tokens = response.get("usage", {}).get("completion_tokens", 0)
-            timings = response.get("timings", {})
-            end_to_end_rate = tokens / elapsed if elapsed else 0
-            self.last_metrics = {"elapsed_s": elapsed, "completion_tokens": tokens,
-                                 "tokens_per_s": timings.get("predicted_per_second", end_to_end_rate),
-                                 "end_to_end_tokens_per_s": end_to_end_rate,
-                                 "timings": timings}
-            logger.info("Plan wygenerowany w %.2f s (%s tokenów).", elapsed, tokens)
-            return plan
+        raw_responses, extracted, usages = [], [], []
+        for offset in range(0, len(fragments), 3):
+            if self._cancelled.is_set() or (stop_event is not None and stop_event.is_set()):
+                raise RuntimeError("Generowanie anulowane.")
+            status(f"Ekstrakcja fragmentów {offset + 1}–{min(offset + 3, len(fragments))}/{len(fragments)}...")
+            batch = [{"id": i, "text": fragments[i][2]} for i in range(offset, min(offset + 3, len(fragments)))]
+            if sum(len(item["text"]) for item in batch) > 1000:
+                raise ValueError("Fragment polecenia jest za długi dla kontekstu modelu; podziel opis.")
+            messages = [{"role": "system", "content": system_prompt()},
+                        {"role": "user", "content": json.dumps(batch, ensure_ascii=False)}]
+            for attempt in range(2):
+                payload = {"messages": messages, "temperature": 0.0, "max_tokens": 400,
+                           "response_format": {"type": "json_object"},
+                           "chat_template_kwargs": {"enable_thinking": False}}
+                if self.config.schema_in_response_format:
+                    payload["response_format"]["schema"] = extraction_schema([item["id"] for item in batch])
+                else:
+                    payload["json_schema"] = extraction_schema([item["id"] for item in batch])
+                response = self._request("POST", "/v1/chat/completions", payload)
+                if self._cancelled.is_set() or (stop_event is not None and stop_event.is_set()):
+                    raise RuntimeError("Generowanie anulowane.")
+                usage = response.get("usage", {})
+                usages.append({**usage, "timings": response.get("timings", {})})
+                self.last_metrics = {"elapsed_s": time.monotonic() - started,
+                                     "completion_tokens": sum(u.get("completion_tokens", 0) for u in usages),
+                                     "prompt_tokens": sum(u.get("prompt_tokens", 0) for u in usages),
+                                     "requests": len(usages), "usage_by_request": usages}
+                try:
+                    text = response["choices"][0]["message"]["content"]
+                    raw_responses.append(text)
+                    self.last_raw_response = json.dumps(raw_responses, ensure_ascii=False)
+                    parsed = parse_response(text)
+                    rows = parsed.get("steps")
+                    if set(parsed) != {"steps"} or not isinstance(rows, list):
+                        raise ValueError("Wymagane steps.")
+                    ids = {item["id"] for item in batch}
+                    for row in rows:
+                        if (not isinstance(row, dict) or set(row) != {"id", "action", "args"}
+                            or type(row["id"]) is not int or row["id"] not in ids
+                            or not isinstance(row["action"], str) or not isinstance(row["args"], dict)):
+                            raise ValueError("Nieprawidłowy krok ekstrakcji.")
+                    if response["choices"][0].get("finish_reason") == "length":
+                        raise ValueError("Odpowiedź obcięta.")
+                    extracted.extend(rows)
+                    break
+                except (KeyError, IndexError, TypeError, ValueError) as exc:
+                    if attempt:
+                        raise ValueError(f"Model dwukrotnie zwrócił błędną ekstrakcję: {exc}") from exc
+                    messages.append({"role": "user", "content": "Zwróć poprawny JSON steps z id każdego fragmentu."})
+        plan = grounded_plan(request)
+        expected = []
+        for i, (start, end, _) in enumerate(fragments):
+            expected.extend({"id": i, "action": step["action"], "args": step["args"]}
+                            for step in plan["steps"] if step["source"] == [start, end])
+        if extracted != expected:
+            plan["notes"].append("Ekstrakcja modelu różniła się od interpretacji źródła. Plan wyznaczono ograniczoną gramatyką; nierozpoznane fragmenty zablokowano.")
+        elapsed = time.monotonic() - started
+        tokens = sum(u.get("completion_tokens", 0) for u in usages)
+        predicted_ms = sum(u.get("timings", {}).get("predicted_ms", 0) for u in usages)
+        self.last_metrics = {"elapsed_s": elapsed, "completion_tokens": tokens,
+                             "prompt_tokens": sum(u.get("prompt_tokens", 0) for u in usages),
+                             "tokens_per_s": tokens * 1000 / predicted_ms if predicted_ms else tokens / elapsed,
+                             "end_to_end_tokens_per_s": tokens / elapsed,
+                             "requests": len(usages), "usage_by_request": usages,
+                             "extracted_steps": extracted, "model_agrees": extracted == expected}
+        return plan
 
     def cancel(self):
         self._cancelled.set()

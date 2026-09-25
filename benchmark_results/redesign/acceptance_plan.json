@@ -1,0 +1,159 @@
+{
+  "title": "Plan procedury",
+  "steps": [
+    {
+      "description": "rozpocznij pomiar",
+      "action": "start_measurement",
+      "args": {},
+      "source": [
+        0,
+        18
+      ]
+    },
+    {
+      "description": "ustaw temerature na 20 stopni",
+      "action": "set_temperature",
+      "args": {
+        "value_c": 20.0
+      },
+      "source": [
+        18,
+        48
+      ]
+    },
+    {
+      "description": "wlacz grzalke",
+      "action": "unsupported",
+      "args": {},
+      "source": [
+        48,
+        62
+      ]
+    },
+    {
+      "description": "poczekaj 30 s",
+      "action": "wait",
+      "args": {
+        "seconds": 30.0
+      },
+      "source": [
+        62,
+        76
+      ]
+    },
+    {
+      "description": "ustaw lopatke 1",
+      "action": "set_polarization_angle",
+      "args": {
+        "paddle": 1,
+        "angle_deg": null
+      },
+      "source": [
+        76,
+        92
+      ]
+    },
+    {
+      "description": "ustaw piezo na 50v",
+      "action": "set_piezo_voltage",
+      "args": {
+        "value_v": 50.0
+      },
+      "source": [
+        92,
+        111
+      ]
+    },
+    {
+      "description": "ustaw lopatki na 100",
+      "action": "set_polarization_angle",
+      "args": {
+        "paddle": 1,
+        "angle_deg": 100.0
+      },
+      "source": [
+        111,
+        132
+      ]
+    },
+    {
+      "description": "ustaw lopatki na 100",
+      "action": "set_polarization_angle",
+      "args": {
+        "paddle": 2,
+        "angle_deg": 100.0
+      },
+      "source": [
+        111,
+        132
+      ]
+    },
+    {
+      "description": "ustaw temerature na 30 stopni",
+      "action": "set_temperature",
+      "args": {
+        "value_c": 30.0
+      },
+      "source": [
+        132,
+        162
+      ]
+    },
+    {
+      "description": "wlacz grzalke",
+      "action": "unsupported",
+      "args": {},
+      "source": [
+        162,
+        176
+      ]
+    },
+    {
+      "description": "ustaw lopatki",
+      "action": "set_polarization_angle",
+      "args": {
+        "paddle": 1,
+        "angle_deg": null
+      },
+      "source": [
+        176,
+        190
+      ]
+    },
+    {
+      "description": "ustaw lopatki",
+      "action": "set_polarization_angle",
+      "args": {
+        "paddle": 2,
+        "angle_deg": null
+      },
+      "source": [
+        176,
+        190
+      ]
+    },
+    {
+      "description": "zakoncz pomiar",
+      "action": "stop_measurement",
+      "args": {},
+      "source": [
+        190,
+        205
+      ]
+    },
+    {
+      "description": "zapisz plik",
+      "action": "unsupported",
+      "args": {},
+      "source": [
+        205,
+        216
+      ]
+    }
+  ],
+  "missing_parameters": [],
+  "notes": [
+    "Ekstrakcja modelu różniła się od interpretacji źródła. Plan wyznaczono ograniczoną gramatyką; nierozpoznane fragmenty zablokowano."
+  ],
+  "request": "rozpocznij pomiar ustaw temerature na 20 stopni wlacz grzalke poczekaj 30 s ustaw lopatke 1 ustaw piezo na 50v ustaw lopatki na 100 ustaw temerature na 30 stopni wlacz grzalke ustaw lopatki zakoncz pomiar zapisz plik"
+}

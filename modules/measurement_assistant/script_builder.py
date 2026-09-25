@@ -4,7 +4,7 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-from .plan_schema import PlanValidator
+from .plan_schema import PlanValidator, ValidationResult
 
 
 class ScriptBuilder:
@@ -40,7 +40,11 @@ class ScriptBuilder:
         (directory / "llm_response.json").write_text(
             llm_response if isinstance(llm_response, str) else json.dumps(plan, ensure_ascii=False, indent=2),
             encoding="utf-8")
-        validation = validation or PlanValidator().validate(plan, request)
+        checked = PlanValidator().validate(plan, request)
+        validation = ValidationResult(
+            tuple(dict.fromkeys(checked.errors + (validation.errors if validation else ()))),
+            tuple(dict.fromkeys(checked.missing_parameters + (validation.missing_parameters if validation else ()))),
+        )
         result_metrics = dict(metrics or {})
         for key in ("elapsed_s", "completion_tokens", "tokens_per_s"):
             result_metrics.setdefault(key, None)
@@ -51,6 +55,9 @@ class ScriptBuilder:
         (directory / "run.log").write_text(
             f"Planning: valid={result_metrics['valid']} runnable={validation.runnable}\n"
             + "\n".join(validation.errors), encoding="utf-8")
+        script_path = directory / "script.py"
+        if script_path.exists() or script_path.is_symlink():
+            script_path.unlink()
         if execution_enabled and validation.runnable:
             (directory / "script.py").write_text(self.build(plan), encoding="utf-8")
         return directory

@@ -27,6 +27,14 @@ def plan(action="wait", **args):
             "args": args}], "missing_parameters": [], "notes": []}
 
 
+def request_for(p):
+    templates = {"wait": "Poczekaj {seconds} sekund", "set_temperature": "Ustaw temperaturę na {value_c}",
+                 "set_piezo_voltage": "Ustaw piezo na {value_v}",
+                 "set_polarization_angle": "Ustaw łopatkę {paddle} na {angle_deg}",
+                 "start_measurement": "Rozpocznij pomiar", "stop_measurement": "Zatrzymaj pomiar"}
+    return "; ".join(templates[s["action"]].format(**s["args"]) for s in p["steps"])
+
+
 class Worker(QObject):
     error = Signal(str)
     operation_finished = Signal(str)
@@ -70,18 +78,12 @@ class AssistantTests(unittest.TestCase):
         cls.app = QApplication.instance() or QApplication([])
 
     def test_system_prompt_preserves_incomplete_actions(self):
-        from modules.measurement_assistant.context_builder import tool_definitions, planning_examples
+        from modules.measurement_assistant.context_builder import planning_examples
         prompt = system_prompt()
         self.assertIn("brakujący wymagany argument zwróć jako null", prompt)
-        self.assertIn("Nie pomijaj niekompletnej akcji", prompt)
-        self.assertIn("NIE są wartościami domyślnymi", prompt)
-        self.assertIn("Nie decyduj, że plan jest runnable", prompt)
-        self.assertEqual([t["name"] for t in tool_definitions()], list(ACTION_REGISTRY))
-        self.assertEqual(len(planning_examples()), 5)
-        for alias in ("płytka piezo", "nastawnik polaryzacji", "pierwsza", "drugi"):
-            self.assertIn(alias, prompt)
-        self.assertIn('"angle_deg":null', prompt)
-        self.assertIn('"value_v":null', prompt)
+        self.assertIn("unsupported", prompt)
+        self.assertEqual(planning_examples(), [])
+        self.assertNotIn('35', prompt)
 
     def test_required_null_is_incomplete_not_invalid(self):
         cases = [
@@ -108,12 +110,12 @@ class AssistantTests(unittest.TestCase):
                     self.assertFalse(metrics["runnable"])
                     self.assertEqual(metrics["missing_parameters_count"], 1)
 
-    def test_complete_numeric_plan_is_not_natural_language_parsed(self):
+    def test_ungrounded_numeric_plan_is_rejected(self):
         for angle in (30, 90):
             result = PlanValidator().validate(plan("set_polarization_angle", paddle=2, angle_deg=angle),
                                                "Ustaw drugą łopatkę.")
-            self.assertEqual(result.status, "COMPLETE")
-            self.assertTrue(result.runnable)
+            self.assertEqual(result.status, "INVALID")
+            self.assertFalse(result.runnable)
 
     def test_nullable_optional_and_nonnullable_arguments(self):
         spec = ActionSpec("test_optional", "Test", {
@@ -134,6 +136,8 @@ class AssistantTests(unittest.TestCase):
         schema = response_schema()
         self.assertEqual(schema["properties"]["steps"]["minItems"], 0)
         for variant in schema["properties"]["steps"]["items"]["oneOf"]:
+            if variant["properties"]["action"]["const"] == "unsupported":
+                continue
             spec = ACTION_REGISTRY[variant["properties"]["action"]["const"]]
             for key, arg in spec.arguments.items():
                 self.assertIn("null", variant["properties"]["args"]["properties"][key]["type"])
@@ -156,11 +160,11 @@ class AssistantTests(unittest.TestCase):
                 self.assertEqual(result.status, "INVALID")
                 self.assertFalse(result.runnable)
 
-    def test_piezo_without_unit_remains_an_observed_model_decision(self):
-        # No language parser or assumed voltage is introduced in validation.
+    def test_piezo_uses_documented_default_unit(self):
+        # Omitted units use the explicit tool contract; omitted values stay null.
         result = PlanValidator().validate(plan("set_piezo_voltage", value_v=10), "Ustaw piezo na 10.")
         self.assertTrue(result.runnable)
-        self.assertIn("Nie zgaduj jednostek", system_prompt())
+        self.assertIn("Jednostki domyślne narzędzi", system_prompt())
 
     def test_controller_uses_deterministic_missing_parameters(self):
         with tempfile.TemporaryDirectory() as root:
@@ -224,7 +228,7 @@ class AssistantTests(unittest.TestCase):
 
     def test_backend_blocks_hallucinated_stabilization(self):
         backend = LLMBackend()
-        response = {"choices": [{"message": {"content": json.dumps(plan(seconds=10))}}]}
+        response = {"choices": [{"message": {"content": json.dumps({"steps": [{"id": 0, "action": "wait", "args": {"seconds": 10}}]})}}]}
         with patch.object(backend, "ensure_ready"), patch.object(backend, "_request", return_value=response):
             p = backend.generate("Poczekaj aż temperatura się ustabilizuje")
         self.assertFalse(PlanValidator().validate(p).runnable)
@@ -236,12 +240,13 @@ class AssistantTests(unittest.TestCase):
         guessed = plan(seconds=10)["steps"][0]
         guessed["description"] = "Poczekaj aż się ustabilizuje"
         p["steps"].append(guessed)
-        raw = json.dumps(p)
+        raw = json.dumps({"steps": [{"id": i, "action": step["action"], "args": step["args"]} for i, step in enumerate(p["steps"])]})
         response = {"choices": [{"message": {"content": raw}}]}
         with patch.object(backend, "ensure_ready"), patch.object(backend, "_request", return_value=response):
             normalized = backend.generate("Ustaw 40 stopni i poczekaj aż się ustabilizuje")
-        self.assertEqual(len(normalized["steps"]), 1)
-        self.assertEqual(backend.last_raw_response, raw)
+        self.assertEqual(len(normalized["steps"]), 2)
+        self.assertEqual(normalized["steps"][-1]["action"], "unsupported")
+        self.assertEqual(json.loads(backend.last_raw_response), [raw])
         self.assertFalse(PlanValidator().validate(normalized).runnable)
 
     def test_backend_closed_does_not_restart(self):
@@ -254,9 +259,9 @@ class AssistantTests(unittest.TestCase):
     def test_backend_parser_retries_once(self):
         backend = LLMBackend()
         responses = [{"choices": [{"message": {"content": "bad"}}]},
-                     {"choices": [{"message": {"content": json.dumps(plan(seconds=1))}}]}]
+                     {"choices": [{"message": {"content": json.dumps({"steps": [{"id": 0, "action": "wait", "args": {"seconds": 1}}]})}}]}]
         with patch.object(backend, "ensure_ready"), patch.object(backend, "_request", side_effect=responses) as call:
-            self.assertEqual(backend.generate("Poczekaj 1 sekundę"), plan(seconds=1))
+            self.assertEqual(backend.generate("Poczekaj 1 sekundę")["steps"][0]["args"], {"seconds": 1})
             self.assertEqual(call.call_count, 2)
 
     def test_controller_plan_only_no_actions(self):
@@ -301,7 +306,7 @@ class AssistantTests(unittest.TestCase):
         self.assertFalse(PlanValidator().validate(p).runnable)
         with self.assertRaises(ValueError): ScriptBuilder().build(p)
         with tempfile.TemporaryDirectory() as root:
-            folder = ScriptBuilder().save(root, "request", p, execution_enabled=True)
+            folder = ScriptBuilder().save(root, request_for(p), p, execution_enabled=True)
             self.assertTrue((folder / "plan.json").exists())
             self.assertFalse((folder / "script.py").exists())
 
@@ -316,7 +321,7 @@ class AssistantTests(unittest.TestCase):
         calls = []
         with tempfile.TemporaryDirectory() as root:
             p = plan(seconds=0)
-            directory = ScriptBuilder().save(root, "request", p, execution_enabled=True)
+            directory = ScriptBuilder().save(root, request_for(p), p, execution_enabled=True)
             actions = SimpleNamespace(wait=lambda **args: calls.append(args))
             self.assertTrue(Runner(AssistantConfig(execution_enabled=True)).run(directory / "script.py", p, actions))
             self.assertEqual(calls, [{"seconds": 0}])
@@ -328,7 +333,7 @@ class AssistantTests(unittest.TestCase):
         event.set()
         with tempfile.TemporaryDirectory() as root:
             p = plan(seconds=0)
-            directory = ScriptBuilder().save(root, "request", p, execution_enabled=True)
+            directory = ScriptBuilder().save(root, request_for(p), p, execution_enabled=True)
             self.assertFalse(Runner(AssistantConfig(execution_enabled=True)).run(directory / "script.py", p, object(), event))
 
     def test_runner_failure_cancels_and_logs(self):
@@ -336,7 +341,7 @@ class AssistantTests(unittest.TestCase):
         def fail(**args): raise RuntimeError("fake failure")
         with tempfile.TemporaryDirectory() as root:
             p = plan(seconds=0)
-            directory = ScriptBuilder().save(root, "fake only", p, execution_enabled=True)
+            directory = ScriptBuilder().save(root, request_for(p), p, execution_enabled=True)
             fake = SimpleNamespace(wait=fail, cancel=lambda: cancelled.append(True))
             with self.assertRaises(RuntimeError):
                 Runner(AssistantConfig(execution_enabled=True)).run(directory / "script.py", p, fake)
@@ -365,7 +370,7 @@ class AssistantTests(unittest.TestCase):
                         plan(seconds=0)["steps"][0], plan("stop_measurement")["steps"][0]]
         result = []
         with tempfile.TemporaryDirectory() as root:
-            directory = ScriptBuilder().save(root, "fake only", p, execution_enabled=True)
+            directory = ScriptBuilder().save(root, request_for(p), p, execution_enabled=True)
             def execute():
                 try: result.append(Runner(AssistantConfig(execution_enabled=True)).run(directory / "script.py", p, actions))
                 except Exception as exc: result.append(exc)
@@ -400,7 +405,7 @@ class AssistantTests(unittest.TestCase):
         result = []
         with tempfile.TemporaryDirectory() as root:
             p = plan(seconds=30)
-            directory = ScriptBuilder().save(root, "fake only", p, execution_enabled=True)
+            directory = ScriptBuilder().save(root, request_for(p), p, execution_enabled=True)
             thread = threading.Thread(target=lambda: result.append(
                 Runner(AssistantConfig(execution_enabled=True)).run(directory / "script.py", p, actions)))
             thread.start()
@@ -431,7 +436,7 @@ class AssistantTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as root:
             p = plan("set_temperature", value_c=25)
             p["steps"].append(plan("set_piezo_voltage", value_v=10)["steps"][0])
-            directory = ScriptBuilder().save(root, "fake only", p, execution_enabled=True)
+            directory = ScriptBuilder().save(root, request_for(p), p, execution_enabled=True)
             def run():
                 try: result.append(Runner(AssistantConfig(execution_enabled=True)).run(directory / "script.py", p, actions))
                 except Exception as exc: result.append(exc)
@@ -481,7 +486,7 @@ class AssistantTests(unittest.TestCase):
     def test_generation_parameters_and_schema_formats(self):
         for nested in (True, False):
             backend = LLMBackend(AssistantConfig(schema_in_response_format=nested))
-            response = {"choices": [{"message": {"content": json.dumps(plan(seconds=0))}}]}
+            response = {"choices": [{"message": {"content": json.dumps({"steps": [{"id": 0, "action": "wait", "args": {"seconds": 0}}]})}}]}
             with patch.object(backend, "ensure_ready"), patch.object(backend, "_request", return_value=response) as call:
                 backend.generate("Poczekaj 0 sekund")
                 payload = call.call_args.args[2]
@@ -534,7 +539,7 @@ class AssistantTests(unittest.TestCase):
                     self.assertFalse(controller._busy)
                     self.assertEqual(call.call_count, 2)
                 folder = controller._directory
-                self.assertEqual((folder / "llm_response.json").read_text(), "invalid JSON")
+                self.assertEqual(json.loads((folder / "llm_response.json").read_text()), ["invalid JSON", "invalid JSON"])
                 metrics = json.loads((folder / "metrics.json").read_text())
                 self.assertFalse(metrics["valid"])
                 self.assertFalse(metrics["runnable"])
@@ -542,7 +547,7 @@ class AssistantTests(unittest.TestCase):
                 self.assertFalse(panel.start_button.isEnabled())
                 self.assertFalse((folder / "script.py").exists())
                 panel.copy_button.click()
-                self.assertEqual(self.app.clipboard().text(), "invalid JSON")
+                self.assertEqual(json.loads(self.app.clipboard().text()), ["invalid JSON", "invalid JSON"])
                 self.assertTrue(all(not device.calls for device in devices))
             finally:
                 controller.shutdown()
@@ -599,7 +604,7 @@ class AssistantTests(unittest.TestCase):
         for p in (plan("unknown"), dict(plan(seconds=0), missing_parameters=["Podaj parametr"])):
             with tempfile.TemporaryDirectory() as root:
                 validation = PlanValidator().validate(p)
-                folder = ScriptBuilder().save(root, "test", p, validation=validation)
+                folder = ScriptBuilder().save(root, "Poczekaj 0 sekund", p, validation=validation)
                 metrics = json.loads((folder / "metrics.json").read_text())
                 self.assertEqual(metrics["valid"], not bool(validation.errors))
                 self.assertFalse(metrics["runnable"])

@@ -1,0 +1,444 @@
+{
+  "mode": "after",
+  "summary": {
+    "action_recognition_accuracy": 0.0,
+    "action_order_accuracy": 0.0,
+    "argument_binding_accuracy": 0.0,
+    "missing_argument_accuracy": null,
+    "unsupported_action_recall": null,
+    "unsupported_action_false_positive_rate": 1.0,
+    "hallucinated_action_rate": 1.0,
+    "hallucinated_parameter_rate": null,
+    "dropped_requested_action_rate": 1.0,
+    "json_validity": 1.0,
+    "status_correct": 0.0,
+    "full_semantic_plan_success": 0.0,
+    "schema_validity": 1.0,
+    "elapsed_s": 15.926047889499841,
+    "prompt_tokens": 487.0,
+    "output_tokens": 46.5,
+    "tokens_per_s": 5.170491389511721
+  },
+  "tests": [
+    {
+      "case": "M",
+      "request": "Daj 12 V na piezo.",
+      "expected": [
+        [
+          "set_piezo_voltage",
+          {
+            "value_v": 12
+          }
+        ]
+      ],
+      "raw": "[\"{\\n  \\\"steps\\\": [\\n    {\\n      \\\"action\\\": \\\"set_piezo_voltage\\\",\\n      \\\"args\\\": {\\n        \\\"value_v\\\": 12\\n      },\\n      \\\"id\\\": 0\\n    }\\n  ]\\n}\"]",
+      "metrics": {
+        "elapsed_s": 33.08043368300059,
+        "completion_tokens": 57,
+        "prompt_tokens": 487,
+        "tokens_per_s": 5.243493583389716,
+        "end_to_end_tokens_per_s": 1.723072936292586,
+        "requests": 1,
+        "usage_by_request": [
+          {
+            "completion_tokens": 57,
+            "prompt_tokens": 487,
+            "total_tokens": 544,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "timings": {
+              "cache_n": 0,
+              "prompt_n": 487,
+              "prompt_ms": 22193.226,
+              "prompt_per_token_ms": 45.57130595482546,
+              "prompt_per_second": 21.94363271026934,
+              "predicted_n": 57,
+              "predicted_ms": 10870.615,
+              "predicted_per_token_ms": 194.118125,
+              "predicted_per_second": 5.1515024678916514
+            }
+          }
+        ],
+        "extracted_steps": [
+          {
+            "action": "set_piezo_voltage",
+            "args": {
+              "value_v": 12
+            },
+            "id": 0
+          }
+        ],
+        "model_agrees": false
+      },
+      "status": "INVALID",
+      "validation_errors": [
+        "Krok 1: nieobsługiwana lub nierozpoznana czynność: Daj 12 V na piezo"
+      ],
+      "schema_validity": true,
+      "raw_score": {
+        "action_recognition_accuracy": 1.0,
+        "action_order_accuracy": true,
+        "argument_binding_accuracy": 1.0,
+        "missing_argument_accuracy": null,
+        "unsupported_action_recall": null,
+        "unsupported_action_false_positive_rate": 0.0,
+        "hallucinated_action_rate": 0.0,
+        "hallucinated_parameter_rate": 0.0,
+        "dropped_requested_action_rate": 0.0,
+        "json_validity": true,
+        "status_correct": true,
+        "full_semantic_plan_success": true
+      },
+      "plan": {
+        "title": "Plan procedury",
+        "steps": [
+          {
+            "description": "Daj 12 V na piezo",
+            "action": "unsupported",
+            "args": {},
+            "source": [
+              0,
+              17
+            ]
+          }
+        ],
+        "missing_parameters": [],
+        "notes": [
+          "Ekstrakcja modelu różniła się od interpretacji źródła. Plan wyznaczono ograniczoną gramatyką; nierozpoznane fragmenty zablokowano."
+        ],
+        "request": "Daj 12 V na piezo."
+      },
+      "elapsed_s": 33.084309986000335,
+      "action_recognition_accuracy": 0.0,
+      "action_order_accuracy": false,
+      "argument_binding_accuracy": 0.0,
+      "missing_argument_accuracy": null,
+      "unsupported_action_recall": null,
+      "unsupported_action_false_positive_rate": 1.0,
+      "hallucinated_action_rate": 1.0,
+      "hallucinated_parameter_rate": null,
+      "dropped_requested_action_rate": 1.0,
+      "json_validity": true,
+      "status_correct": false,
+      "full_semantic_plan_success": false,
+      "prompt_tokens": 487,
+      "output_tokens": 57,
+      "tokens_per_s": 5.243493583389716
+    },
+    {
+      "case": "N",
+      "request": "Zacznij rejestrować dane.",
+      "expected": [
+        [
+          "start_measurement",
+          {}
+        ]
+      ],
+      "raw": "[\"{\\\"steps\\\":[{\\\"action\\\":\\\"start_measurement\\\",\\\"args\\\":{},\\\"id\\\":0}]}\"]",
+      "metrics": {
+        "elapsed_s": 5.048799459000293,
+        "completion_tokens": 18,
+        "prompt_tokens": 486,
+        "tokens_per_s": 5.2961488759218245,
+        "end_to_end_tokens_per_s": 3.5652039947659477,
+        "requests": 1,
+        "usage_by_request": [
+          {
+            "completion_tokens": 18,
+            "prompt_tokens": 486,
+            "total_tokens": 504,
+            "prompt_tokens_details": {
+              "cached_tokens": 453
+            },
+            "timings": {
+              "cache_n": 453,
+              "prompt_n": 33,
+              "prompt_ms": 1636.085,
+              "prompt_per_token_ms": 49.57833333333333,
+              "prompt_per_second": 20.170101186674287,
+              "predicted_n": 18,
+              "predicted_ms": 3398.696,
+              "predicted_per_token_ms": 199.92329411764706,
+              "predicted_per_second": 5.001918382815056
+            }
+          }
+        ],
+        "extracted_steps": [
+          {
+            "action": "start_measurement",
+            "args": {},
+            "id": 0
+          }
+        ],
+        "model_agrees": false
+      },
+      "status": "INVALID",
+      "validation_errors": [
+        "Krok 1: nieobsługiwana lub nierozpoznana czynność: Zacznij rejestrować dane"
+      ],
+      "schema_validity": true,
+      "raw_score": {
+        "action_recognition_accuracy": 1.0,
+        "action_order_accuracy": true,
+        "argument_binding_accuracy": null,
+        "missing_argument_accuracy": null,
+        "unsupported_action_recall": null,
+        "unsupported_action_false_positive_rate": 0.0,
+        "hallucinated_action_rate": 0.0,
+        "hallucinated_parameter_rate": null,
+        "dropped_requested_action_rate": 0.0,
+        "json_validity": true,
+        "status_correct": true,
+        "full_semantic_plan_success": true
+      },
+      "plan": {
+        "title": "Plan procedury",
+        "steps": [
+          {
+            "description": "Zacznij rejestrować dane",
+            "action": "unsupported",
+            "args": {},
+            "source": [
+              0,
+              24
+            ]
+          }
+        ],
+        "missing_parameters": [],
+        "notes": [
+          "Ekstrakcja modelu różniła się od interpretacji źródła. Plan wyznaczono ograniczoną gramatyką; nierozpoznane fragmenty zablokowano."
+        ],
+        "request": "Zacznij rejestrować dane."
+      },
+      "elapsed_s": 5.05043307699998,
+      "action_recognition_accuracy": 0.0,
+      "action_order_accuracy": false,
+      "argument_binding_accuracy": null,
+      "missing_argument_accuracy": null,
+      "unsupported_action_recall": null,
+      "unsupported_action_false_positive_rate": 1.0,
+      "hallucinated_action_rate": 1.0,
+      "hallucinated_parameter_rate": null,
+      "dropped_requested_action_rate": 1.0,
+      "json_validity": true,
+      "status_correct": false,
+      "full_semantic_plan_success": false,
+      "prompt_tokens": 486,
+      "output_tokens": 18,
+      "tokens_per_s": 5.2961488759218245
+    },
+    {
+      "case": "O",
+      "request": "Ustaw temperaturkę na 22 stopnie.",
+      "expected": [
+        [
+          "set_temperature",
+          {
+            "value_c": 22
+          }
+        ]
+      ],
+      "raw": "[\"{\\n  \\\"steps\\\": [\\n    {\\n      \\\"action\\\": \\\"set_temperature\\\",\\n      \\\"args\\\": {\\n        \\\"value_c\\\": 22\\n      },\\n      \\\"id\\\": 0\\n    }\\n  ]\\n}\"]",
+      "metrics": {
+        "elapsed_s": 12.452572068000336,
+        "completion_tokens": 54,
+        "prompt_tokens": 488,
+        "tokens_per_s": 5.086338715872786,
+        "end_to_end_tokens_per_s": 4.336453521820207,
+        "requests": 1,
+        "usage_by_request": [
+          {
+            "completion_tokens": 54,
+            "prompt_tokens": 488,
+            "total_tokens": 542,
+            "prompt_tokens_details": {
+              "cached_tokens": 453
+            },
+            "timings": {
+              "cache_n": 453,
+              "prompt_n": 35,
+              "prompt_ms": 1820.908,
+              "prompt_per_token_ms": 52.02594285714285,
+              "prompt_per_second": 19.22117976306326,
+              "predicted_n": 54,
+              "predicted_ms": 10616.674,
+              "predicted_per_token_ms": 200.31460377358493,
+              "predicted_per_second": 4.992147258171438
+            }
+          }
+        ],
+        "extracted_steps": [
+          {
+            "action": "set_temperature",
+            "args": {
+              "value_c": 22
+            },
+            "id": 0
+          }
+        ],
+        "model_agrees": false
+      },
+      "status": "INVALID",
+      "validation_errors": [
+        "Krok 1: nieobsługiwana lub nierozpoznana czynność: Ustaw temperaturkę na 22 stopnie"
+      ],
+      "schema_validity": true,
+      "raw_score": {
+        "action_recognition_accuracy": 1.0,
+        "action_order_accuracy": true,
+        "argument_binding_accuracy": 1.0,
+        "missing_argument_accuracy": null,
+        "unsupported_action_recall": null,
+        "unsupported_action_false_positive_rate": 0.0,
+        "hallucinated_action_rate": 0.0,
+        "hallucinated_parameter_rate": 0.0,
+        "dropped_requested_action_rate": 0.0,
+        "json_validity": true,
+        "status_correct": true,
+        "full_semantic_plan_success": true
+      },
+      "plan": {
+        "title": "Plan procedury",
+        "steps": [
+          {
+            "description": "Ustaw temperaturkę na 22 stopnie",
+            "action": "unsupported",
+            "args": {},
+            "source": [
+              0,
+              32
+            ]
+          }
+        ],
+        "missing_parameters": [],
+        "notes": [
+          "Ekstrakcja modelu różniła się od interpretacji źródła. Plan wyznaczono ograniczoną gramatyką; nierozpoznane fragmenty zablokowano."
+        ],
+        "request": "Ustaw temperaturkę na 22 stopnie."
+      },
+      "elapsed_s": 12.45379662599953,
+      "action_recognition_accuracy": 0.0,
+      "action_order_accuracy": false,
+      "argument_binding_accuracy": 0.0,
+      "missing_argument_accuracy": null,
+      "unsupported_action_recall": null,
+      "unsupported_action_false_positive_rate": 1.0,
+      "hallucinated_action_rate": 1.0,
+      "hallucinated_parameter_rate": null,
+      "dropped_requested_action_rate": 1.0,
+      "json_validity": true,
+      "status_correct": false,
+      "full_semantic_plan_success": false,
+      "prompt_tokens": 488,
+      "output_tokens": 54,
+      "tokens_per_s": 5.086338715872786
+    },
+    {
+      "case": "P",
+      "request": "Ustaw piezo na dwanaście V.",
+      "expected": [
+        [
+          "set_piezo_voltage",
+          {
+            "value_v": 12
+          }
+        ]
+      ],
+      "raw": "[\"{\\n  \\\"steps\\\": [\\n    {\\n      \\\"action\\\": \\\"set_piezo_voltage\\\",\\n      \\\"args\\\": {\\n        \\\"value_v\\\": 12\\n      },\\n      \\\"id\\\": 0\\n    }\\n  ]\\n}\"]",
+      "metrics": {
+        "elapsed_s": 13.114679438999701,
+        "completion_tokens": 57,
+        "prompt_tokens": 487,
+        "tokens_per_s": 5.055984382862555,
+        "end_to_end_tokens_per_s": 4.3462747423697285,
+        "requests": 1,
+        "usage_by_request": [
+          {
+            "completion_tokens": 57,
+            "prompt_tokens": 487,
+            "total_tokens": 544,
+            "prompt_tokens_details": {
+              "cached_tokens": 453
+            },
+            "timings": {
+              "cache_n": 453,
+              "prompt_n": 34,
+              "prompt_ms": 1830.125,
+              "prompt_per_token_ms": 53.82720588235294,
+              "prompt_per_second": 18.577965985929925,
+              "predicted_n": 57,
+              "predicted_ms": 11273.769,
+              "predicted_per_token_ms": 201.31730357142857,
+              "predicted_per_second": 4.967282902461457
+            }
+          }
+        ],
+        "extracted_steps": [
+          {
+            "action": "set_piezo_voltage",
+            "args": {
+              "value_v": 12
+            },
+            "id": 0
+          }
+        ],
+        "model_agrees": false
+      },
+      "status": "INVALID",
+      "validation_errors": [
+        "Krok 1: nieobsługiwana lub nierozpoznana czynność: Ustaw piezo na dwanaście V"
+      ],
+      "schema_validity": true,
+      "raw_score": {
+        "action_recognition_accuracy": 1.0,
+        "action_order_accuracy": true,
+        "argument_binding_accuracy": 1.0,
+        "missing_argument_accuracy": null,
+        "unsupported_action_recall": null,
+        "unsupported_action_false_positive_rate": 0.0,
+        "hallucinated_action_rate": 0.0,
+        "hallucinated_parameter_rate": 0.0,
+        "dropped_requested_action_rate": 0.0,
+        "json_validity": true,
+        "status_correct": true,
+        "full_semantic_plan_success": true
+      },
+      "plan": {
+        "title": "Plan procedury",
+        "steps": [
+          {
+            "description": "Ustaw piezo na dwanaście V",
+            "action": "unsupported",
+            "args": {},
+            "source": [
+              0,
+              26
+            ]
+          }
+        ],
+        "missing_parameters": [],
+        "notes": [
+          "Ekstrakcja modelu różniła się od interpretacji źródła. Plan wyznaczono ograniczoną gramatyką; nierozpoznane fragmenty zablokowano."
+        ],
+        "request": "Ustaw piezo na dwanaście V."
+      },
+      "elapsed_s": 13.115651868999521,
+      "action_recognition_accuracy": 0.0,
+      "action_order_accuracy": false,
+      "argument_binding_accuracy": 0.0,
+      "missing_argument_accuracy": null,
+      "unsupported_action_recall": null,
+      "unsupported_action_false_positive_rate": 1.0,
+      "hallucinated_action_rate": 1.0,
+      "hallucinated_parameter_rate": null,
+      "dropped_requested_action_rate": 1.0,
+      "json_validity": true,
+      "status_correct": false,
+      "full_semantic_plan_success": false,
+      "prompt_tokens": 487,
+      "output_tokens": 57,
+      "tokens_per_s": 5.055984382862555
+    }
+  ]
+}

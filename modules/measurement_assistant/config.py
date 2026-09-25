@@ -1,14 +1,24 @@
 """Konfiguracja lokalnego modelu; żaden parametr nie pochodzi z planu AI."""
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
+
+
+def default_model():
+    """Use the installed 2B model; never download a model implicitly."""
+    local = Path.home() / ".local/share/app-v2/models/Qwen3.5-2B-Q4_K_M.gguf"
+    if local.is_file():
+        return local
+    cache = Path.home() / ".cache/huggingface/hub/models--openresearchtools--Qwen3.5-2B-GGUF/snapshots"
+    installed = sorted(cache.glob("*/Qwen3.5-2B-Q4_K_M.gguf"))
+    return installed[-1] if installed else local
 
 
 @dataclass(frozen=True)
 class AssistantConfig:
     binary: Path = Path.home() / ".local/share/app-v2/llama.cpp/build/bin/llama-server"
-    model: Path = Path.home() / ".local/share/app-v2/models/qwen2.5-1.5b-instruct-q4_k_m.gguf"
+    model: Path = field(default_factory=default_model)
     execution_enabled: bool = False
     schema_in_response_format: bool = True
     port: int = 8080

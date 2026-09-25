@@ -1,0 +1,1349 @@
+{
+  "mode": "before",
+  "summary": {
+    "action_recognition_accuracy": 0.6458333333333334,
+    "action_order_accuracy": 0.5,
+    "argument_binding_accuracy": 0.7321428571428571,
+    "missing_argument_accuracy": 0.4,
+    "unsupported_action_recall": 0.0,
+    "unsupported_action_false_positive_rate": 0.0,
+    "hallucinated_action_rate": 0.22727272727272727,
+    "hallucinated_parameter_rate": 0.22727272727272727,
+    "dropped_requested_action_rate": 0.3541666666666667,
+    "json_validity": 0.9166666666666666,
+    "status_correct": 0.5,
+    "full_semantic_plan_success": 0.4166666666666667,
+    "schema_validity": 0.9166666666666666,
+    "elapsed_s": 34.386438710916764
+  },
+  "tests": [
+    {
+      "case": "A",
+      "request": "Ustaw piezo na 12 V.",
+      "expected": [
+        [
+          "set_piezo_voltage",
+          {
+            "value_v": 12
+          }
+        ]
+      ],
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "{\n  \"title\": \"Ustaw piezo na 12 V.\",\n  \"steps\": [\n    {\n      \"description\": \"Ustaw napięcie piezo MDT694B.\",\n      \"action\": \"set_piezo_voltage\",\n      \"args\": {\n        \"value_v\": 12\n      }\n    }\n  ],\n  \"missing_parameters\": [],\n  \"notes\": []\n}"
+            }
+          }
+        ],
+        "created": 1790326869,
+        "model": "/home/malina/.cache/huggingface/hub/models--openresearchtools--Qwen3.5-2B-GGUF/snapshots/bc61fcb1c3ca790d262a25e721ddb597352954a9/Qwen3.5-2B-Q4_K_M.gguf",
+        "system_fingerprint": "b38-911f6cd",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 97,
+          "prompt_tokens": 1159,
+          "total_tokens": 1256,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "id": "chatcmpl-uZVnIL7DaIvxw3NDi19gwwU61bJqcWdS",
+        "timings": {
+          "cache_n": 0,
+          "prompt_n": 1159,
+          "prompt_ms": 32294.419,
+          "prompt_per_token_ms": 27.864037100949094,
+          "prompt_per_second": 35.888553994422374,
+          "predicted_n": 97,
+          "predicted_ms": 14250.187,
+          "predicted_per_token_ms": 148.43944791666667,
+          "predicted_per_second": 6.736753700144426
+        }
+      },
+      "metrics": {
+        "completion_tokens": 97,
+        "prompt_tokens": 1159,
+        "total_tokens": 1256,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "timings": {
+          "cache_n": 0,
+          "prompt_n": 1159,
+          "prompt_ms": 32294.419,
+          "prompt_per_token_ms": 27.864037100949094,
+          "prompt_per_second": 35.888553994422374,
+          "predicted_n": 97,
+          "predicted_ms": 14250.187,
+          "predicted_per_token_ms": 148.43944791666667,
+          "predicted_per_second": 6.736753700144426
+        }
+      },
+      "status": "COMPLETE",
+      "validation_errors": [],
+      "schema_validity": true,
+      "plan": {
+        "title": "Ustaw piezo na 12 V.",
+        "steps": [
+          {
+            "description": "Ustaw napięcie piezo MDT694B.",
+            "action": "set_piezo_voltage",
+            "args": {
+              "value_v": 12
+            }
+          }
+        ],
+        "missing_parameters": [],
+        "notes": []
+      },
+      "elapsed_s": 46.73852718800026,
+      "action_recognition_accuracy": 1.0,
+      "action_order_accuracy": true,
+      "argument_binding_accuracy": 1.0,
+      "missing_argument_accuracy": null,
+      "unsupported_action_recall": null,
+      "unsupported_action_false_positive_rate": 0.0,
+      "hallucinated_action_rate": 0.0,
+      "hallucinated_parameter_rate": 0.0,
+      "dropped_requested_action_rate": 0.0,
+      "json_validity": true,
+      "status_correct": true,
+      "full_semantic_plan_success": true
+    },
+    {
+      "case": "B",
+      "request": "Ustaw piezo.",
+      "expected": [
+        [
+          "set_piezo_voltage",
+          {
+            "value_v": null
+          }
+        ]
+      ],
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "{\n  \"title\": \"Ustaw piezo.\",\n  \"steps\": [\n    {\n      \"description\": \"Ustaw napięcie piezo MDT694B.\",\n      \"action\": \"set_piezo_voltage\",\n      \"args\": {\n        \"value_v\": null\n      }\n    }\n  ],\n  \"missing_parameters\": [],\n  \"notes\": []\n}"
+            }
+          }
+        ],
+        "created": 1790326884,
+        "model": "/home/malina/.cache/huggingface/hub/models--openresearchtools--Qwen3.5-2B-GGUF/snapshots/bc61fcb1c3ca790d262a25e721ddb597352954a9/Qwen3.5-2B-Q4_K_M.gguf",
+        "system_fingerprint": "b38-911f6cd",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 90,
+          "prompt_tokens": 1154,
+          "total_tokens": 1244,
+          "prompt_tokens_details": {
+            "cached_tokens": 1137
+          }
+        },
+        "id": "chatcmpl-sKN9DSnPxiFb4QdLix9v6b7t8nOGyI87",
+        "timings": {
+          "cache_n": 1137,
+          "prompt_n": 17,
+          "prompt_ms": 706.178,
+          "prompt_per_token_ms": 41.53988235294118,
+          "prompt_per_second": 24.07325065351795,
+          "predicted_n": 90,
+          "predicted_ms": 14212.311,
+          "predicted_per_token_ms": 159.68888764044942,
+          "predicted_per_second": 6.262176503173904
+        }
+      },
+      "metrics": {
+        "completion_tokens": 90,
+        "prompt_tokens": 1154,
+        "total_tokens": 1244,
+        "prompt_tokens_details": {
+          "cached_tokens": 1137
+        },
+        "timings": {
+          "cache_n": 1137,
+          "prompt_n": 17,
+          "prompt_ms": 706.178,
+          "prompt_per_token_ms": 41.53988235294118,
+          "prompt_per_second": 24.07325065351795,
+          "predicted_n": 90,
+          "predicted_ms": 14212.311,
+          "predicted_per_token_ms": 159.68888764044942,
+          "predicted_per_second": 6.262176503173904
+        }
+      },
+      "status": "INCOMPLETE",
+      "validation_errors": [],
+      "schema_validity": true,
+      "plan": {
+        "title": "Ustaw piezo.",
+        "steps": [
+          {
+            "description": "Ustaw napięcie piezo MDT694B.",
+            "action": "set_piezo_voltage",
+            "args": {
+              "value_v": null
+            }
+          }
+        ],
+        "missing_parameters": [],
+        "notes": []
+      },
+      "elapsed_s": 14.928625205000117,
+      "action_recognition_accuracy": 1.0,
+      "action_order_accuracy": true,
+      "argument_binding_accuracy": 1.0,
+      "missing_argument_accuracy": 1.0,
+      "unsupported_action_recall": null,
+      "unsupported_action_false_positive_rate": 0.0,
+      "hallucinated_action_rate": 0.0,
+      "hallucinated_parameter_rate": 0.0,
+      "dropped_requested_action_rate": 0.0,
+      "json_validity": true,
+      "status_correct": true,
+      "full_semantic_plan_success": true
+    },
+    {
+      "case": "C",
+      "request": "Ustaw drugą łopatkę.",
+      "expected": [
+        [
+          "set_polarization_angle",
+          {
+            "paddle": 2,
+            "angle_deg": null
+          }
+        ]
+      ],
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "{\n  \"title\": \"Ustaw drugą łopatkę\",\n  \"steps\": [\n    {\n      \"description\": \"Ustaw kąt łopatki MPC220 na 90 stopni\",\n      \"action\": \"set_polarization_angle\",\n      \"args\": {\n        \"paddle\": 2,\n        \"angle_deg\": 90\n      }\n    }\n  ],\n  \"missing_parameters\": [],\n  \"notes\": []\n}"
+            }
+          }
+        ],
+        "created": 1790326902,
+        "model": "/home/malina/.cache/huggingface/hub/models--openresearchtools--Qwen3.5-2B-GGUF/snapshots/bc61fcb1c3ca790d262a25e721ddb597352954a9/Qwen3.5-2B-Q4_K_M.gguf",
+        "system_fingerprint": "b38-911f6cd",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 110,
+          "prompt_tokens": 1158,
+          "total_tokens": 1268,
+          "prompt_tokens_details": {
+            "cached_tokens": 1137
+          }
+        },
+        "id": "chatcmpl-eiB5xYr6Izvr7EA4I5a1fCzTzeGA827a",
+        "timings": {
+          "cache_n": 1137,
+          "prompt_n": 21,
+          "prompt_ms": 918.912,
+          "prompt_per_token_ms": 43.757714285714286,
+          "prompt_per_second": 22.85311324697033,
+          "predicted_n": 110,
+          "predicted_ms": 17839.236,
+          "predicted_per_token_ms": 163.6627155963303,
+          "predicted_per_second": 6.110127137731683
+        }
+      },
+      "metrics": {
+        "completion_tokens": 110,
+        "prompt_tokens": 1158,
+        "total_tokens": 1268,
+        "prompt_tokens_details": {
+          "cached_tokens": 1137
+        },
+        "timings": {
+          "cache_n": 1137,
+          "prompt_n": 21,
+          "prompt_ms": 918.912,
+          "prompt_per_token_ms": 43.757714285714286,
+          "prompt_per_second": 22.85311324697033,
+          "predicted_n": 110,
+          "predicted_ms": 17839.236,
+          "predicted_per_token_ms": 163.6627155963303,
+          "predicted_per_second": 6.110127137731683
+        }
+      },
+      "status": "COMPLETE",
+      "validation_errors": [],
+      "schema_validity": true,
+      "plan": {
+        "title": "Ustaw drugą łopatkę",
+        "steps": [
+          {
+            "description": "Ustaw kąt łopatki MPC220 na 90 stopni",
+            "action": "set_polarization_angle",
+            "args": {
+              "paddle": 2,
+              "angle_deg": 90
+            }
+          }
+        ],
+        "missing_parameters": [],
+        "notes": []
+      },
+      "elapsed_s": 18.768985634000273,
+      "action_recognition_accuracy": 1.0,
+      "action_order_accuracy": true,
+      "argument_binding_accuracy": 0.5,
+      "missing_argument_accuracy": 0.0,
+      "unsupported_action_recall": null,
+      "unsupported_action_false_positive_rate": 0.0,
+      "hallucinated_action_rate": 0.0,
+      "hallucinated_parameter_rate": 0.5,
+      "dropped_requested_action_rate": 0.0,
+      "json_validity": true,
+      "status_correct": false,
+      "full_semantic_plan_success": false
+    },
+    {
+      "case": "D",
+      "request": "Ustaw drugą łopatkę na 30 stopni.",
+      "expected": [
+        [
+          "set_polarization_angle",
+          {
+            "paddle": 2,
+            "angle_deg": 30
+          }
+        ]
+      ],
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "{\n  \"title\": \"Ustaw drugą łopatkę na 30 stopni.\",\n  \"steps\": [\n    {\n      \"description\": \"Ustaw kąt jednej łopatki MPC220 i poczekaj na zakończenie ruchu.\",\n      \"action\": \"set_polarization_angle\",\n      \"args\": {\n        \"paddle\": 2,\n        \"angle_deg\": 30\n      }\n    }\n  ],\n  \"missing_parameters\": [],\n  \"notes\": []\n}"
+            }
+          }
+        ],
+        "created": 1790326924,
+        "model": "/home/malina/.cache/huggingface/hub/models--openresearchtools--Qwen3.5-2B-GGUF/snapshots/bc61fcb1c3ca790d262a25e721ddb597352954a9/Qwen3.5-2B-Q4_K_M.gguf",
+        "system_fingerprint": "b38-911f6cd",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 119,
+          "prompt_tokens": 1164,
+          "total_tokens": 1283,
+          "prompt_tokens_details": {
+            "cached_tokens": 1137
+          }
+        },
+        "id": "chatcmpl-QHZCnipXy7xe0tIk0MLFtuIUaKl4Qt2Z",
+        "timings": {
+          "cache_n": 1137,
+          "prompt_n": 27,
+          "prompt_ms": 1391.107,
+          "prompt_per_token_ms": 51.52248148148148,
+          "prompt_per_second": 19.409003045775773,
+          "predicted_n": 119,
+          "predicted_ms": 19832.574,
+          "predicted_per_token_ms": 168.07266101694916,
+          "predicted_per_second": 5.9498076245675415
+        }
+      },
+      "metrics": {
+        "completion_tokens": 119,
+        "prompt_tokens": 1164,
+        "total_tokens": 1283,
+        "prompt_tokens_details": {
+          "cached_tokens": 1137
+        },
+        "timings": {
+          "cache_n": 1137,
+          "prompt_n": 27,
+          "prompt_ms": 1391.107,
+          "prompt_per_token_ms": 51.52248148148148,
+          "prompt_per_second": 19.409003045775773,
+          "predicted_n": 119,
+          "predicted_ms": 19832.574,
+          "predicted_per_token_ms": 168.07266101694916,
+          "predicted_per_second": 5.9498076245675415
+        }
+      },
+      "status": "COMPLETE",
+      "validation_errors": [],
+      "schema_validity": true,
+      "plan": {
+        "title": "Ustaw drugą łopatkę na 30 stopni.",
+        "steps": [
+          {
+            "description": "Ustaw kąt jednej łopatki MPC220 i poczekaj na zakończenie ruchu.",
+            "action": "set_polarization_angle",
+            "args": {
+              "paddle": 2,
+              "angle_deg": 30
+            }
+          }
+        ],
+        "missing_parameters": [],
+        "notes": []
+      },
+      "elapsed_s": 21.23899502600034,
+      "action_recognition_accuracy": 1.0,
+      "action_order_accuracy": true,
+      "argument_binding_accuracy": 1.0,
+      "missing_argument_accuracy": null,
+      "unsupported_action_recall": null,
+      "unsupported_action_false_positive_rate": 0.0,
+      "hallucinated_action_rate": 0.0,
+      "hallucinated_parameter_rate": 0.0,
+      "dropped_requested_action_rate": 0.0,
+      "json_validity": true,
+      "status_correct": true,
+      "full_semantic_plan_success": true
+    },
+    {
+      "case": "E",
+      "request": "Ustaw temperaturę na 37 stopni i rozpocznij pomiar.",
+      "expected": [
+        [
+          "set_temperature",
+          {
+            "value_c": 37
+          }
+        ],
+        [
+          "start_measurement",
+          {}
+        ]
+      ],
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "{\n  \"title\": \"Ustaw temperaturę na 37 stopni i rozpocznij pomiar.\",\n  \"steps\": [\n    {\n      \"description\": \"Ustaw temperaturę na 37 stopni i rozpocznij pomiar.\",\n      \"action\": \"set_temperature\",\n      \"args\": {\n        \"value_c\": 37\n      }\n    },\n    {\n      \"description\": \"Rozpocznij pomiar.\",\n      \"action\": \"start_measurement\",\n      \"args\": {}\n    }\n  ],\n  \"missing_parameters\": [],\n  \"notes\": []\n}"
+            }
+          }
+        ],
+        "created": 1790326949,
+        "model": "/home/malina/.cache/huggingface/hub/models--openresearchtools--Qwen3.5-2B-GGUF/snapshots/bc61fcb1c3ca790d262a25e721ddb597352954a9/Qwen3.5-2B-Q4_K_M.gguf",
+        "system_fingerprint": "b38-911f6cd",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 141,
+          "prompt_tokens": 1166,
+          "total_tokens": 1307,
+          "prompt_tokens_details": {
+            "cached_tokens": 1137
+          }
+        },
+        "id": "chatcmpl-RnN0Sj3yfEQiYPzI3uSUbuAMw5d4lyI1",
+        "timings": {
+          "cache_n": 1137,
+          "prompt_n": 29,
+          "prompt_ms": 1313.503,
+          "prompt_per_token_ms": 45.29320689655172,
+          "prompt_per_second": 22.078366018197144,
+          "predicted_n": 141,
+          "predicted_ms": 23955.712,
+          "predicted_per_token_ms": 171.11222857142857,
+          "predicted_per_second": 5.844117678489372
+        }
+      },
+      "metrics": {
+        "completion_tokens": 141,
+        "prompt_tokens": 1166,
+        "total_tokens": 1307,
+        "prompt_tokens_details": {
+          "cached_tokens": 1137
+        },
+        "timings": {
+          "cache_n": 1137,
+          "prompt_n": 29,
+          "prompt_ms": 1313.503,
+          "prompt_per_token_ms": 45.29320689655172,
+          "prompt_per_second": 22.078366018197144,
+          "predicted_n": 141,
+          "predicted_ms": 23955.712,
+          "predicted_per_token_ms": 171.11222857142857,
+          "predicted_per_second": 5.844117678489372
+        }
+      },
+      "status": "COMPLETE",
+      "validation_errors": [],
+      "schema_validity": true,
+      "plan": {
+        "title": "Ustaw temperaturę na 37 stopni i rozpocznij pomiar.",
+        "steps": [
+          {
+            "description": "Ustaw temperaturę na 37 stopni i rozpocznij pomiar.",
+            "action": "set_temperature",
+            "args": {
+              "value_c": 37
+            }
+          },
+          {
+            "description": "Rozpocznij pomiar.",
+            "action": "start_measurement",
+            "args": {}
+          }
+        ],
+        "missing_parameters": [],
+        "notes": []
+      },
+      "elapsed_s": 25.28304957599994,
+      "action_recognition_accuracy": 1.0,
+      "action_order_accuracy": true,
+      "argument_binding_accuracy": 1.0,
+      "missing_argument_accuracy": null,
+      "unsupported_action_recall": null,
+      "unsupported_action_false_positive_rate": 0.0,
+      "hallucinated_action_rate": 0.0,
+      "hallucinated_parameter_rate": 0.0,
+      "dropped_requested_action_rate": 0.0,
+      "json_validity": true,
+      "status_correct": true,
+      "full_semantic_plan_success": true
+    },
+    {
+      "case": "F",
+      "request": "Włącz grzałkę.",
+      "expected": [
+        [
+          "unsupported",
+          {}
+        ]
+      ],
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "{\n  \"title\": \"Włącz grzałkę\",\n  \"steps\": [\n    {\n      \"description\": \"Włączenie grzałki wymaga ręcznego podłączenia sterownika TC200 do zasilania.\",\n      \"action\": \"set_temperature\",\n      \"args\": {\n        \"value_c\": null\n      }\n    }\n  ],\n  \"missing_parameters\": [\n    \"TC200\",\n    \"zasilanie\"\n  ],\n  \"notes\": [\n    \"Grzałka nie jest obsługiwana przez dostępne narzędzia. Wymaga ręcznego podłączenia sterownika.\",\n    \"Nie można ustawić temperatury ani rozpocząć pomiaru bez podłączenia grzałki.\",\n    \"Stabilizacja temperatury jest nieobsługiwana przez system.\"\n  ]\n}"
+            }
+          }
+        ],
+        "created": 1790326982,
+        "model": "/home/malina/.cache/huggingface/hub/models--openresearchtools--Qwen3.5-2B-GGUF/snapshots/bc61fcb1c3ca790d262a25e721ddb597352954a9/Qwen3.5-2B-Q4_K_M.gguf",
+        "system_fingerprint": "b38-911f6cd",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 191,
+          "prompt_tokens": 1155,
+          "total_tokens": 1346,
+          "prompt_tokens_details": {
+            "cached_tokens": 1137
+          }
+        },
+        "id": "chatcmpl-5bCJhqPnD157W5zDsSY82akyLZszwcpX",
+        "timings": {
+          "cache_n": 1137,
+          "prompt_n": 18,
+          "prompt_ms": 929.472,
+          "prompt_per_token_ms": 51.63733333333333,
+          "prompt_per_second": 19.36583350547408,
+          "predicted_n": 191,
+          "predicted_ms": 32379.928,
+          "predicted_per_token_ms": 170.42067368421053,
+          "predicted_per_second": 5.867832689436493
+        }
+      },
+      "metrics": {
+        "completion_tokens": 191,
+        "prompt_tokens": 1155,
+        "total_tokens": 1346,
+        "prompt_tokens_details": {
+          "cached_tokens": 1137
+        },
+        "timings": {
+          "cache_n": 1137,
+          "prompt_n": 18,
+          "prompt_ms": 929.472,
+          "prompt_per_token_ms": 51.63733333333333,
+          "prompt_per_second": 19.36583350547408,
+          "predicted_n": 191,
+          "predicted_ms": 32379.928,
+          "predicted_per_token_ms": 170.42067368421053,
+          "predicted_per_second": 5.867832689436493
+        }
+      },
+      "status": "INCOMPLETE",
+      "validation_errors": [],
+      "schema_validity": true,
+      "plan": {
+        "title": "Włącz grzałkę",
+        "steps": [
+          {
+            "description": "Włączenie grzałki wymaga ręcznego podłączenia sterownika TC200 do zasilania.",
+            "action": "set_temperature",
+            "args": {
+              "value_c": null
+            }
+          }
+        ],
+        "missing_parameters": [
+          "TC200",
+          "zasilanie"
+        ],
+        "notes": [
+          "Grzałka nie jest obsługiwana przez dostępne narzędzia. Wymaga ręcznego podłączenia sterownika.",
+          "Nie można ustawić temperatury ani rozpocząć pomiaru bez podłączenia grzałki.",
+          "Stabilizacja temperatury jest nieobsługiwana przez system."
+        ]
+      },
+      "elapsed_s": 33.32351019099997,
+      "action_recognition_accuracy": 0.0,
+      "action_order_accuracy": false,
+      "argument_binding_accuracy": null,
+      "missing_argument_accuracy": null,
+      "unsupported_action_recall": 0.0,
+      "unsupported_action_false_positive_rate": null,
+      "hallucinated_action_rate": 1.0,
+      "hallucinated_parameter_rate": 0.0,
+      "dropped_requested_action_rate": 1.0,
+      "json_validity": true,
+      "status_correct": false,
+      "full_semantic_plan_success": false
+    },
+    {
+      "case": "G",
+      "request": "Zapisz plik.",
+      "expected": [
+        [
+          "unsupported",
+          {}
+        ]
+      ],
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "{\n  \"title\": \"Zapisz plik\",\n  \"steps\": [\n    {\n      \"description\": \"Zapisz plik\",\n      \"action\": \"set_temperature\",\n      \"args\": {\n        \"value_c\": 20.0\n      }\n    },\n    {\n      \"description\": \"Zapisz plik\",\n      \"action\": \"start_measurement\",\n      \"args\": {}\n    }\n  ],\n  \"missing_parameters\": [],\n  \"notes\": [\n    \"Temperatura ustrojona na 20.0°C, grzałka nie jest włączana.\",\n    \"Pomiar ADS1263 rozpocznięty.\",\n    \"Stabilizacja temperatury nie jest obsłużona, więc nie można czekać na jej zakończenie.\",\n    \"Brak danych o stanie sterownika piezo MDT694B, więc nie można ustawić napięcia piezo.\"\n  ]\n}"
+            }
+          }
+        ],
+        "created": 1790327021,
+        "model": "/home/malina/.cache/huggingface/hub/models--openresearchtools--Qwen3.5-2B-GGUF/snapshots/bc61fcb1c3ca790d262a25e721ddb597352954a9/Qwen3.5-2B-Q4_K_M.gguf",
+        "system_fingerprint": "b38-911f6cd",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 218,
+          "prompt_tokens": 1155,
+          "total_tokens": 1373,
+          "prompt_tokens_details": {
+            "cached_tokens": 1137
+          }
+        },
+        "id": "chatcmpl-KXm3nmimdyYEcAheika2ZrETYOexbxad",
+        "timings": {
+          "cache_n": 1137,
+          "prompt_n": 18,
+          "prompt_ms": 942.169,
+          "prompt_per_token_ms": 52.34272222222222,
+          "prompt_per_second": 19.104852738733708,
+          "predicted_n": 218,
+          "predicted_ms": 37759.99,
+          "predicted_per_token_ms": 174.00917050691243,
+          "predicted_per_second": 5.74682355583251
+        }
+      },
+      "metrics": {
+        "completion_tokens": 218,
+        "prompt_tokens": 1155,
+        "total_tokens": 1373,
+        "prompt_tokens_details": {
+          "cached_tokens": 1137
+        },
+        "timings": {
+          "cache_n": 1137,
+          "prompt_n": 18,
+          "prompt_ms": 942.169,
+          "prompt_per_token_ms": 52.34272222222222,
+          "prompt_per_second": 19.104852738733708,
+          "predicted_n": 218,
+          "predicted_ms": 37759.99,
+          "predicted_per_token_ms": 174.00917050691243,
+          "predicted_per_second": 5.74682355583251
+        }
+      },
+      "status": "COMPLETE",
+      "validation_errors": [],
+      "schema_validity": true,
+      "plan": {
+        "title": "Zapisz plik",
+        "steps": [
+          {
+            "description": "Zapisz plik",
+            "action": "set_temperature",
+            "args": {
+              "value_c": 20.0
+            }
+          },
+          {
+            "description": "Zapisz plik",
+            "action": "start_measurement",
+            "args": {}
+          }
+        ],
+        "missing_parameters": [],
+        "notes": [
+          "Temperatura ustrojona na 20.0°C, grzałka nie jest włączana.",
+          "Pomiar ADS1263 rozpocznięty.",
+          "Stabilizacja temperatury nie jest obsłużona, więc nie można czekać na jej zakończenie.",
+          "Brak danych o stanie sterownika piezo MDT694B, więc nie można ustawić napięcia piezo."
+        ]
+      },
+      "elapsed_s": 38.71629648499993,
+      "action_recognition_accuracy": 0.0,
+      "action_order_accuracy": false,
+      "argument_binding_accuracy": null,
+      "missing_argument_accuracy": null,
+      "unsupported_action_recall": 0.0,
+      "unsupported_action_false_positive_rate": null,
+      "hallucinated_action_rate": 1.0,
+      "hallucinated_parameter_rate": 1.0,
+      "dropped_requested_action_rate": 1.0,
+      "json_validity": true,
+      "status_correct": false,
+      "full_semantic_plan_success": false
+    },
+    {
+      "case": "H",
+      "request": "Ustaw piezo na 50 V i włącz grzałkę.",
+      "expected": [
+        [
+          "set_piezo_voltage",
+          {
+            "value_v": 50
+          }
+        ],
+        [
+          "unsupported",
+          {}
+        ]
+      ],
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "{\n  \"title\": \"Ustaw piezo na 50 V i włącz grzałkę\",\n  \"steps\": [\n    {\n      \"description\": \"Ustaw napięcie piezo MDT694B na 50 V\",\n      \"action\": \"set_piezo_voltage\",\n      \"args\": {\n        \"value_v\": 50\n      }\n    },\n    {\n      \"description\": \"Włącz grzałkę\",\n      \"action\": \"set_temperature\",\n      \"args\": {\n        \"value_c\": 100\n      }\n    }\n  ],\n  \"missing_parameters\": [],\n  \"notes\": [\n    \"Grzałka jest włączana przez ustawienie temperatury na maksymalną wartość (100°C).\",\n    \"Nigdy nie zastępuj wymyślanej wartości `wait` w `set_temperature`.\",\n    \"Stabilizacja temperatury nie jest obsługiwana przez dostępne narzędzia.\"\n  ]\n}"
+            }
+          }
+        ],
+        "created": 1790327062,
+        "model": "/home/malina/.cache/huggingface/hub/models--openresearchtools--Qwen3.5-2B-GGUF/snapshots/bc61fcb1c3ca790d262a25e721ddb597352954a9/Qwen3.5-2B-Q4_K_M.gguf",
+        "system_fingerprint": "b38-911f6cd",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 228,
+          "prompt_tokens": 1165,
+          "total_tokens": 1393,
+          "prompt_tokens_details": {
+            "cached_tokens": 1137
+          }
+        },
+        "id": "chatcmpl-iBxSaaCmRc9ZClbWOtJCj1Uh6ra4UzWS",
+        "timings": {
+          "cache_n": 1137,
+          "prompt_n": 28,
+          "prompt_ms": 1328.803,
+          "prompt_per_token_ms": 47.45725,
+          "prompt_per_second": 21.07159601536119,
+          "predicted_n": 228,
+          "predicted_ms": 40026.212,
+          "predicted_per_token_ms": 176.32692511013215,
+          "predicted_per_second": 5.671283607851774
+        }
+      },
+      "metrics": {
+        "completion_tokens": 228,
+        "prompt_tokens": 1165,
+        "total_tokens": 1393,
+        "prompt_tokens_details": {
+          "cached_tokens": 1137
+        },
+        "timings": {
+          "cache_n": 1137,
+          "prompt_n": 28,
+          "prompt_ms": 1328.803,
+          "prompt_per_token_ms": 47.45725,
+          "prompt_per_second": 21.07159601536119,
+          "predicted_n": 228,
+          "predicted_ms": 40026.212,
+          "predicted_per_token_ms": 176.32692511013215,
+          "predicted_per_second": 5.671283607851774
+        }
+      },
+      "status": "COMPLETE",
+      "validation_errors": [],
+      "schema_validity": true,
+      "plan": {
+        "title": "Ustaw piezo na 50 V i włącz grzałkę",
+        "steps": [
+          {
+            "description": "Ustaw napięcie piezo MDT694B na 50 V",
+            "action": "set_piezo_voltage",
+            "args": {
+              "value_v": 50
+            }
+          },
+          {
+            "description": "Włącz grzałkę",
+            "action": "set_temperature",
+            "args": {
+              "value_c": 100
+            }
+          }
+        ],
+        "missing_parameters": [],
+        "notes": [
+          "Grzałka jest włączana przez ustawienie temperatury na maksymalną wartość (100°C).",
+          "Nigdy nie zastępuj wymyślanej wartości `wait` w `set_temperature`.",
+          "Stabilizacja temperatury nie jest obsługiwana przez dostępne narzędzia."
+        ]
+      },
+      "elapsed_s": 41.36868730299966,
+      "action_recognition_accuracy": 0.5,
+      "action_order_accuracy": false,
+      "argument_binding_accuracy": 1.0,
+      "missing_argument_accuracy": null,
+      "unsupported_action_recall": 0.0,
+      "unsupported_action_false_positive_rate": 0.0,
+      "hallucinated_action_rate": 0.5,
+      "hallucinated_parameter_rate": 0.5,
+      "dropped_requested_action_rate": 0.5,
+      "json_validity": true,
+      "status_correct": false,
+      "full_semantic_plan_success": false
+    },
+    {
+      "case": "I",
+      "request": "Ustaw łopatkę 1, potem piezo na 50 V, potem łopatki na 100.",
+      "expected": [
+        [
+          "set_polarization_angle",
+          {
+            "paddle": 1,
+            "angle_deg": null
+          }
+        ],
+        [
+          "set_piezo_voltage",
+          {
+            "value_v": 50
+          }
+        ],
+        [
+          "set_polarization_angle",
+          {
+            "paddle": 1,
+            "angle_deg": 100
+          }
+        ],
+        [
+          "set_polarization_angle",
+          {
+            "paddle": 2,
+            "angle_deg": 100
+          }
+        ]
+      ],
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "{\n  \"title\": \"Planowanie procedur laboratoryjnych\",\n  \"steps\": [\n    {\n      \"description\": \"Ustaw łopatkę 1\",\n      \"action\": \"set_polarization_angle\",\n      \"args\": {\n        \"paddle\": 1,\n        \"angle_deg\": null\n      }\n    },\n    {\n      \"description\": \"Ustaw piezo na 50 V\",\n      \"action\": \"set_piezo_voltage\",\n      \"args\": {\n        \"value_v\": 50\n      }\n    },\n    {\n      \"description\": \"Ustaw łopatkę 1\",\n      \"action\": \"set_polarization_angle\",\n      \"args\": {\n        \"paddle\": 1,\n        \"angle_deg\": null\n      }\n    }\n  ],\n  \"missing_parameters\": [],\n  \"notes\": []\n}"
+            }
+          }
+        ],
+        "created": 1790327101,
+        "model": "/home/malina/.cache/huggingface/hub/models--openresearchtools--Qwen3.5-2B-GGUF/snapshots/bc61fcb1c3ca790d262a25e721ddb597352954a9/Qwen3.5-2B-Q4_K_M.gguf",
+        "system_fingerprint": "b38-911f6cd",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 208,
+          "prompt_tokens": 1177,
+          "total_tokens": 1385,
+          "prompt_tokens_details": {
+            "cached_tokens": 1137
+          }
+        },
+        "id": "chatcmpl-Jlu0st1cJmIHgrIU2zXS6q6dPzUutIis",
+        "timings": {
+          "cache_n": 1137,
+          "prompt_n": 40,
+          "prompt_ms": 1846.152,
+          "prompt_per_token_ms": 46.153800000000004,
+          "prompt_per_second": 21.666688333354998,
+          "predicted_n": 208,
+          "predicted_ms": 36396.091,
+          "predicted_per_token_ms": 175.82652657004832,
+          "predicted_per_second": 5.687423959897232
+        }
+      },
+      "metrics": {
+        "completion_tokens": 208,
+        "prompt_tokens": 1177,
+        "total_tokens": 1385,
+        "prompt_tokens_details": {
+          "cached_tokens": 1137
+        },
+        "timings": {
+          "cache_n": 1137,
+          "prompt_n": 40,
+          "prompt_ms": 1846.152,
+          "prompt_per_token_ms": 46.153800000000004,
+          "prompt_per_second": 21.666688333354998,
+          "predicted_n": 208,
+          "predicted_ms": 36396.091,
+          "predicted_per_token_ms": 175.82652657004832,
+          "predicted_per_second": 5.687423959897232
+        }
+      },
+      "status": "INCOMPLETE",
+      "validation_errors": [],
+      "schema_validity": true,
+      "plan": {
+        "title": "Planowanie procedur laboratoryjnych",
+        "steps": [
+          {
+            "description": "Ustaw łopatkę 1",
+            "action": "set_polarization_angle",
+            "args": {
+              "paddle": 1,
+              "angle_deg": null
+            }
+          },
+          {
+            "description": "Ustaw piezo na 50 V",
+            "action": "set_piezo_voltage",
+            "args": {
+              "value_v": 50
+            }
+          },
+          {
+            "description": "Ustaw łopatkę 1",
+            "action": "set_polarization_angle",
+            "args": {
+              "paddle": 1,
+              "angle_deg": null
+            }
+          }
+        ],
+        "missing_parameters": [],
+        "notes": []
+      },
+      "elapsed_s": 38.256535266000355,
+      "action_recognition_accuracy": 0.75,
+      "action_order_accuracy": false,
+      "argument_binding_accuracy": 0.5714285714285714,
+      "missing_argument_accuracy": 1.0,
+      "unsupported_action_recall": null,
+      "unsupported_action_false_positive_rate": 0.0,
+      "hallucinated_action_rate": 0.0,
+      "hallucinated_parameter_rate": 0.0,
+      "dropped_requested_action_rate": 0.25,
+      "json_validity": true,
+      "status_correct": true,
+      "full_semantic_plan_success": false
+    },
+    {
+      "case": "J",
+      "request": "Ustaw pierwszą łopatkę na 20, drugą na 40.",
+      "expected": [
+        [
+          "set_polarization_angle",
+          {
+            "paddle": 1,
+            "angle_deg": 20
+          }
+        ],
+        [
+          "set_polarization_angle",
+          {
+            "paddle": 2,
+            "angle_deg": 40
+          }
+        ]
+      ],
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "{\n  \"title\": \"Ustaw pierwszą łopatkę na 20, drugą na 40.\",\n  \"steps\": [\n    {\n      \"description\": \"Ustaw kąt pierwszej łopatki MPC220.\",\n      \"action\": \"set_polarization_angle\",\n      \"args\": {\n        \"paddle\": 1,\n        \"angle_deg\": 20\n      }\n    },\n    {\n      \"description\": \"Ustaw kąt drugiej łopatki MPC220.\",\n      \"action\": \"set_polarization_angle\",\n      \"args\": {\n        \"paddle\": 2,\n        \"angle_deg\": 40\n      }\n    }\n  ],\n  \"missing_parameters\": [],\n  \"notes\": []\n}"
+            }
+          }
+        ],
+        "created": 1790327135,
+        "model": "/home/malina/.cache/huggingface/hub/models--openresearchtools--Qwen3.5-2B-GGUF/snapshots/bc61fcb1c3ca790d262a25e721ddb597352954a9/Qwen3.5-2B-Q4_K_M.gguf",
+        "system_fingerprint": "b38-911f6cd",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 180,
+          "prompt_tokens": 1169,
+          "total_tokens": 1349,
+          "prompt_tokens_details": {
+            "cached_tokens": 1137
+          }
+        },
+        "id": "chatcmpl-7Piqowkm99epFfwnAWRccPVQdEEo5C4B",
+        "timings": {
+          "cache_n": 1137,
+          "prompt_n": 32,
+          "prompt_ms": 1669.533,
+          "prompt_per_token_ms": 52.17290625,
+          "prompt_per_second": 19.16703653057472,
+          "predicted_n": 180,
+          "predicted_ms": 32851.635,
+          "predicted_per_token_ms": 183.528687150838,
+          "predicted_per_second": 5.448739461521473
+        }
+      },
+      "metrics": {
+        "completion_tokens": 180,
+        "prompt_tokens": 1169,
+        "total_tokens": 1349,
+        "prompt_tokens_details": {
+          "cached_tokens": 1137
+        },
+        "timings": {
+          "cache_n": 1137,
+          "prompt_n": 32,
+          "prompt_ms": 1669.533,
+          "prompt_per_token_ms": 52.17290625,
+          "prompt_per_second": 19.16703653057472,
+          "predicted_n": 180,
+          "predicted_ms": 32851.635,
+          "predicted_per_token_ms": 183.528687150838,
+          "predicted_per_second": 5.448739461521473
+        }
+      },
+      "status": "COMPLETE",
+      "validation_errors": [],
+      "schema_validity": true,
+      "plan": {
+        "title": "Ustaw pierwszą łopatkę na 20, drugą na 40.",
+        "steps": [
+          {
+            "description": "Ustaw kąt pierwszej łopatki MPC220.",
+            "action": "set_polarization_angle",
+            "args": {
+              "paddle": 1,
+              "angle_deg": 20
+            }
+          },
+          {
+            "description": "Ustaw kąt drugiej łopatki MPC220.",
+            "action": "set_polarization_angle",
+            "args": {
+              "paddle": 2,
+              "angle_deg": 40
+            }
+          }
+        ],
+        "missing_parameters": [],
+        "notes": []
+      },
+      "elapsed_s": 34.53663521899989,
+      "action_recognition_accuracy": 1.0,
+      "action_order_accuracy": true,
+      "argument_binding_accuracy": 1.0,
+      "missing_argument_accuracy": null,
+      "unsupported_action_recall": null,
+      "unsupported_action_false_positive_rate": 0.0,
+      "hallucinated_action_rate": 0.0,
+      "hallucinated_parameter_rate": 0.0,
+      "dropped_requested_action_rate": 0.0,
+      "json_validity": true,
+      "status_correct": true,
+      "full_semantic_plan_success": true
+    },
+    {
+      "case": "K",
+      "request": "Ustaw pierwszą łopatkę, drugą na 40.",
+      "expected": [
+        [
+          "set_polarization_angle",
+          {
+            "paddle": 1,
+            "angle_deg": null
+          }
+        ],
+        [
+          "set_polarization_angle",
+          {
+            "paddle": 2,
+            "angle_deg": 40
+          }
+        ]
+      ],
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "{\n  \"title\": \"Ustaw pierwszą łopatkę, drugą na 40.\",\n  \"steps\": [\n    {\n      \"description\": \"Ustaw kąt pierwszej łopatki MPC220.\",\n      \"action\": \"set_polarization_angle\",\n      \"args\": {\n        \"paddle\": 1,\n        \"angle_deg\": 40\n      }\n    }\n  ],\n  \"missing_parameters\": [],\n  \"notes\": []\n}"
+            }
+          }
+        ],
+        "created": 1790327156,
+        "model": "/home/malina/.cache/huggingface/hub/models--openresearchtools--Qwen3.5-2B-GGUF/snapshots/bc61fcb1c3ca790d262a25e721ddb597352954a9/Qwen3.5-2B-Q4_K_M.gguf",
+        "system_fingerprint": "b38-911f6cd",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 112,
+          "prompt_tokens": 1165,
+          "total_tokens": 1277,
+          "prompt_tokens_details": {
+            "cached_tokens": 1137
+          }
+        },
+        "id": "chatcmpl-AeYcZ9YaAVMaHDeTsvTvP5xPJ4csGyX9",
+        "timings": {
+          "cache_n": 1137,
+          "prompt_n": 28,
+          "prompt_ms": 1346.526,
+          "prompt_per_token_ms": 48.09021428571429,
+          "prompt_per_second": 20.794251280703083,
+          "predicted_n": 112,
+          "predicted_ms": 19892.502,
+          "predicted_per_token_ms": 179.21172972972974,
+          "predicted_per_second": 5.579991898455005
+        }
+      },
+      "metrics": {
+        "completion_tokens": 112,
+        "prompt_tokens": 1165,
+        "total_tokens": 1277,
+        "prompt_tokens_details": {
+          "cached_tokens": 1137
+        },
+        "timings": {
+          "cache_n": 1137,
+          "prompt_n": 28,
+          "prompt_ms": 1346.526,
+          "prompt_per_token_ms": 48.09021428571429,
+          "prompt_per_second": 20.794251280703083,
+          "predicted_n": 112,
+          "predicted_ms": 19892.502,
+          "predicted_per_token_ms": 179.21172972972974,
+          "predicted_per_second": 5.579991898455005
+        }
+      },
+      "status": "COMPLETE",
+      "validation_errors": [],
+      "schema_validity": true,
+      "plan": {
+        "title": "Ustaw pierwszą łopatkę, drugą na 40.",
+        "steps": [
+          {
+            "description": "Ustaw kąt pierwszej łopatki MPC220.",
+            "action": "set_polarization_angle",
+            "args": {
+              "paddle": 1,
+              "angle_deg": 40
+            }
+          }
+        ],
+        "missing_parameters": [],
+        "notes": []
+      },
+      "elapsed_s": 21.252835688000232,
+      "action_recognition_accuracy": 0.5,
+      "action_order_accuracy": false,
+      "argument_binding_accuracy": 0.25,
+      "missing_argument_accuracy": 0.0,
+      "unsupported_action_recall": null,
+      "unsupported_action_false_positive_rate": 0.0,
+      "hallucinated_action_rate": 0.0,
+      "hallucinated_parameter_rate": 0.5,
+      "dropped_requested_action_rate": 0.5,
+      "json_validity": true,
+      "status_correct": false,
+      "full_semantic_plan_success": false
+    },
+    {
+      "case": "L",
+      "request": "rozpocznij pomiar ustaw temerature na 20 stopni wlacz grzalke poczekaj 30 s ustaw lopatke 1 ustaw piezo na 50v ustaw lopatki na 100 ustaw temerature na 30 stopni wlacz grzalke ustaw lopatki zakoncz pomiar zapisz plik",
+      "expected": [
+        [
+          "start_measurement",
+          {}
+        ],
+        [
+          "set_temperature",
+          {
+            "value_c": 20
+          }
+        ],
+        [
+          "unsupported",
+          {}
+        ],
+        [
+          "wait",
+          {
+            "seconds": 30
+          }
+        ],
+        [
+          "set_polarization_angle",
+          {
+            "paddle": 1,
+            "angle_deg": null
+          }
+        ],
+        [
+          "set_piezo_voltage",
+          {
+            "value_v": 50
+          }
+        ],
+        [
+          "set_polarization_angle",
+          {
+            "paddle": 1,
+            "angle_deg": 100
+          }
+        ],
+        [
+          "set_polarization_angle",
+          {
+            "paddle": 2,
+            "angle_deg": 100
+          }
+        ],
+        [
+          "set_temperature",
+          {
+            "value_c": 30
+          }
+        ],
+        [
+          "unsupported",
+          {}
+        ],
+        [
+          "set_polarization_angle",
+          {
+            "paddle": 1,
+            "angle_deg": null
+          }
+        ],
+        [
+          "set_polarization_angle",
+          {
+            "paddle": 2,
+            "angle_deg": null
+          }
+        ],
+        [
+          "stop_measurement",
+          {}
+        ],
+        [
+          "unsupported",
+          {}
+        ]
+      ],
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "{\n  \"title\": \"Plan procedury laboratoryjnej\",\n  \"steps\": [\n    {\n      \"description\": \"Ustaw temperaturę na 20 stopni i włączyć grzałkę\",\n      \"action\": \"set_temperature\",\n      \"args\": {\n        \"value_c\": 20\n      }\n    },\n    {\n      \"description\": \"Poczekaj 30 sekund\",\n      \"action\": \"wait\",\n      \"args\": {\n        \"seconds\": 30\n      }\n    },\n    {\n      \"description\": \"Ustaw łopatkę 1\",\n      \"action\": \"set_polarization_angle\",\n      \"args\": {\n        \"paddle\": 1,\n        \"angle_deg\": null\n      }\n    },\n    {\n      \"description\": \"Ustaw piezo na 50 V\",\n      \"action\": \"set_piezo_voltage\",\n      \"args\": {\n        \"value_v\": 50\n      }\n    },\n    {\n      \"description\": \"Ustaw łopatkę na 100\",\n      \"action\": \"set_polarization_angle\",\n      \"args\": {\n        \"paddle\": 1,\n        \"angle_deg\": 100\n      }\n    },\n    {\n      \"description\": \"Ustaw temperaturę na 30 stopni i włączyć grzałkę\",\n      \"action\": \"set_temperature\",\n      \"args\": {\n        \"value_c\": 30\n      }\n    },\n    {\n      \"description\": \"Włączyć grzałkę\",\n      \"action\": \"set_temperature\",\n      \"args\": {\n        \"value_c\": null\n      }\n    },\n   "
+            }
+          }
+        ],
+        "created": 1790327235,
+        "model": "/home/malina/.cache/huggingface/hub/models--openresearchtools--Qwen3.5-2B-GGUF/snapshots/bc61fcb1c3ca790d262a25e721ddb597352954a9/Qwen3.5-2B-Q4_K_M.gguf",
+        "system_fingerprint": "b38-911f6cd",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 400,
+          "prompt_tokens": 1228,
+          "total_tokens": 1628,
+          "prompt_tokens_details": {
+            "cached_tokens": 1137
+          }
+        },
+        "id": "chatcmpl-X7kjlwjJON1NajF0zKAtvhDYnsl80n0C",
+        "timings": {
+          "cache_n": 1137,
+          "prompt_n": 91,
+          "prompt_ms": 4137.124,
+          "prompt_per_token_ms": 45.4629010989011,
+          "prompt_per_second": 21.995956611404445,
+          "predicted_n": 400,
+          "predicted_ms": 74070.896,
+          "predicted_per_token_ms": 185.64134335839597,
+          "predicted_per_second": 5.386731112311643
+        }
+      },
+      "metrics": {
+        "completion_tokens": 400,
+        "prompt_tokens": 1228,
+        "total_tokens": 1628,
+        "prompt_tokens_details": {
+          "cached_tokens": 1137
+        },
+        "timings": {
+          "cache_n": 1137,
+          "prompt_n": 91,
+          "prompt_ms": 4137.124,
+          "prompt_per_token_ms": 45.4629010989011,
+          "prompt_per_second": 21.995956611404445,
+          "predicted_n": 400,
+          "predicted_ms": 74070.896,
+          "predicted_per_token_ms": 185.64134335839597,
+          "predicted_per_second": 5.386731112311643
+        }
+      },
+      "error": "Expecting value: line 55 column 4 (char 1134)",
+      "status": "ERROR",
+      "schema_validity": false,
+      "plan": {},
+      "elapsed_s": 78.2245817500002,
+      "action_recognition_accuracy": 0.0,
+      "action_order_accuracy": false,
+      "argument_binding_accuracy": 0.0,
+      "missing_argument_accuracy": 0.0,
+      "unsupported_action_recall": 0.0,
+      "unsupported_action_false_positive_rate": 0.0,
+      "hallucinated_action_rate": null,
+      "hallucinated_parameter_rate": null,
+      "dropped_requested_action_rate": 1.0,
+      "json_validity": false,
+      "status_correct": false,
+      "full_semantic_plan_success": false
+    }
+  ]
+}

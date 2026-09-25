@@ -1,0 +1,176 @@
+.......................Błąd rampy napięcia MDT694B
+Traceback (most recent call last):
+  File "/home/malina/APPv2/modules/mdt694b/controller.py", line 160, in _ramp_tick
+    voltage = self._require_driver().set_voltage(requested)
+  File "/home/malina/APPv2/tests_x/test_mdt694b_driver.py", line 114, in set_voltage
+    raise RuntimeError("serial failure")
+RuntimeError: serial failure
+.....................Nie udało się uruchomić pomiaru ADS1263
+Traceback (most recent call last):
+  File "/home/malina/APPv2/modules/measurement/controller.py", line 38, in start_measurement
+    self._driver.connect()
+    ~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/malina/APPv2/tests_x/test_measurement.py", line 93, in connect
+    raise RuntimeError("boom")
+RuntimeError: boom
+.....................Error calling Python override of QGraphicsWidget::sizeHint(): Traceback (most recent call last):
+  File "/home/malina/APPv2/.venv/lib/python3.13/site-packages/pyqtgraph/graphicsItems/LabelItem.py", line 132, in sizeHint
+    if hint not in self._sizeHint:
+                   ^^^^^^^^^^^^^^
+AttributeError: 'LabelItem' object has no attribute '_sizeHint'. Did you mean: 'sizeHint'?
+Error calling Python override of QGraphicsWidget::sizeHint(): Traceback (most recent call last):
+  File "/home/malina/APPv2/.venv/lib/python3.13/site-packages/pyqtgraph/graphicsItems/LabelItem.py", line 132, in sizeHint
+    if hint not in self._sizeHint:
+                   ^^^^^^^^^^^^^^
+AttributeError: 'LabelItem' object has no attribute '_sizeHint'. Did you mean: 'sizeHint'?
+Error calling Python override of QGraphicsWidget::sizeHint(): Traceback (most recent call last):
+  File "/home/malina/APPv2/.venv/lib/python3.13/site-packages/pyqtgraph/graphicsItems/LabelItem.py", line 132, in sizeHint
+    if hint not in self._sizeHint:
+                   ^^^^^^^^^^^^^^
+AttributeError: 'LabelItem' object has no attribute '_sizeHint'. Did you mean: 'sizeHint'?
+Error calling Python override of QGraphicsWidget::sizeHint(): Traceback (most recent call last):
+  File "/home/malina/APPv2/.venv/lib/python3.13/site-packages/pyqtgraph/graphicsItems/LabelItem.py", line 132, in sizeHint
+    if hint not in self._sizeHint:
+                   ^^^^^^^^^^^^^^
+AttributeError: 'LabelItem' object has no attribute '_sizeHint'. Did you mean: 'sizeHint'?
+Error calling Python override of QGraphicsWidget::sizeHint(): Traceback (most recent call last):
+  File "/home/malina/APPv2/.venv/lib/python3.13/site-packages/pyqtgraph/graphicsItems/LabelItem.py", line 132, in sizeHint
+    if hint not in self._sizeHint:
+                   ^^^^^^^^^^^^^^
+AttributeError: 'LabelItem' object has no attribute '_sizeHint'. Did you mean: 'sizeHint'?
+Error calling Python override of QGraphicsWidget::sizeHint(): Traceback (most recent call last):
+  File "/home/malina/APPv2/.venv/lib/python3.13/site-packages/pyqtgraph/graphicsItems/LabelItem.py", line 132, in sizeHint
+    if hint not in self._sizeHint:
+                   ^^^^^^^^^^^^^^
+AttributeError: 'LabelItem' object has no attribute '_sizeHint'. Did you mean: 'sizeHint'?
+Error calling Python override of QGraphicsWidget::sizeHint(): Traceback (most recent call last):
+  File "/home/malina/APPv2/.venv/lib/python3.13/site-packages/pyqtgraph/graphicsItems/LabelItem.py", line 132, in sizeHint
+    if hint not in self._sizeHint:
+                   ^^^^^^^^^^^^^^
+AttributeError: 'LabelItem' object has no attribute '_sizeHint'. Did you mean: 'sizeHint'?
+Error calling Python override of QGraphicsWidget::sizeHint(): Traceback (most recent call last):
+  File "/home/malina/APPv2/.venv/lib/python3.13/site-packages/pyqtgraph/graphicsItems/LabelItem.py", line 132, in sizeHint
+    if hint not in self._sizeHint:
+                   ^^^^^^^^^^^^^^
+AttributeError: 'LabelItem' object has no attribute '_sizeHint'. Did you mean: 'sizeHint'?
+Error calling Python override of QGraphicsWidget::sizeHint(): Traceback (most recent call last):
+  File "/home/malina/APPv2/.venv/lib/python3.13/site-packages/pyqtgraph/graphicsItems/LabelItem.py", line 132, in sizeHint
+    if hint not in self._sizeHint:
+                   ^^^^^^^^^^^^^^
+AttributeError: 'LabelItem' object has no attribute '_sizeHint'. Did you mean: 'sizeHint'?
+Error calling Python override of QGraphicsWidget::sizeHint(): Traceback (most recent call last):
+  File "/home/malina/APPv2/.venv/lib/python3.13/site-packages/pyqtgraph/graphicsItems/LabelItem.py", line 132, in sizeHint
+    if hint not in self._sizeHint:
+                   ^^^^^^^^^^^^^^
+AttributeError: 'LabelItem' object has no attribute '_sizeHint'. Did you mean: 'sizeHint'?
+Error calling Python override of QGraphicsWidget::sizeHint(): Traceback (most recent call last):
+  File "/home/malina/APPv2/.venv/lib/python3.13/site-packages/pyqtgraph/graphicsItems/LabelItem.py", line 132, in sizeHint
+    if hint not in self._sizeHint:
+                   ^^^^^^^^^^^^^^
+AttributeError: 'LabelItem' object has no attribute '_sizeHint'. Did you mean: 'sizeHint'?
+Error calling Python override of QGraphicsWidget::sizeHint(): Traceback (most recent call last):
+  File "/home/malina/APPv2/.venv/lib/python3.13/site-packages/pyqtgraph/graphicsItems/LabelItem.py", line 132, in sizeHint
+    if hint not in self._sizeHint:
+                   ^^^^^^^^^^^^^^
+AttributeError: 'LabelItem' object has no attribute '_sizeHint'. Did you mean: 'sizeHint'?
+Error calling Python override of QGraphicsWidget::sizeHint(): Traceback (most recent call last):
+  File "/home/malina/APPv2/.venv/lib/python3.13/site-packages/pyqtgraph/graphicsItems/LabelItem.py", line 132, in sizeHint
+    if hint not in self._sizeHint:
+                   ^^^^^^^^^^^^^^
+AttributeError: 'LabelItem' object has no attribute '_sizeHint'. Did you mean: 'sizeHint'?
+Error calling Python override of QGraphicsWidget::sizeHint(): Traceback (most recent call last):
+  File "/home/malina/APPv2/.venv/lib/python3.13/site-packages/pyqtgraph/graphicsItems/LabelItem.py", line 132, in sizeHint
+    if hint not in self._sizeHint:
+                   ^^^^^^^^^^^^^^
+AttributeError: 'LabelItem' object has no attribute '_sizeHint'. Did you mean: 'sizeHint'?
+Error calling Python override of QGraphicsWidget::sizeHint(): Traceback (most recent call last):
+  File "/home/malina/APPv2/.venv/lib/python3.13/site-packages/pyqtgraph/graphicsItems/LabelItem.py", line 132, in sizeHint
+    if hint not in self._sizeHint:
+                   ^^^^^^^^^^^^^^
+AttributeError: 'LabelItem' object has no attribute '_sizeHint'. Did you mean: 'sizeHint'?
+Error calling Python override of QGraphicsWidget::sizeHint(): Traceback (most recent call last):
+  File "/home/malina/APPv2/.venv/lib/python3.13/site-packages/pyqtgraph/graphicsItems/LabelItem.py", line 132, in sizeHint
+    if hint not in self._sizeHint:
+                   ^^^^^^^^^^^^^^
+AttributeError: 'LabelItem' object has no attribute '_sizeHint'. Did you mean: 'sizeHint'?
+Error calling Python override of QGraphicsWidget::sizeHint(): Traceback (most recent call last):
+  File "/home/malina/APPv2/.venv/lib/python3.13/site-packages/pyqtgraph/graphicsItems/LabelItem.py", line 132, in sizeHint
+    if hint not in self._sizeHint:
+                   ^^^^^^^^^^^^^^
+AttributeError: 'LabelItem' object has no attribute '_sizeHint'. Did you mean: 'sizeHint'?
+Error calling Python override of QGraphicsWidget::sizeHint(): Traceback (most recent call last):
+  File "/home/malina/APPv2/.venv/lib/python3.13/site-packages/pyqtgraph/graphicsItems/LabelItem.py", line 132, in sizeHint
+    if hint not in self._sizeHint:
+                   ^^^^^^^^^^^^^^
+AttributeError: 'LabelItem' object has no attribute '_sizeHint'. Did you mean: 'sizeHint'?
+Error calling Python override of QGraphicsWidget::sizeHint(): Traceback (most recent call last):
+  File "/home/malina/APPv2/.venv/lib/python3.13/site-packages/pyqtgraph/graphicsItems/LabelItem.py", line 132, in sizeHint
+    if hint not in self._sizeHint:
+                   ^^^^^^^^^^^^^^
+AttributeError: 'LabelItem' object has no attribute '_sizeHint'. Did you mean: 'sizeHint'?
+Error calling Python override of QGraphicsWidget::sizeHint(): Traceback (most recent call last):
+  File "/home/malina/APPv2/.venv/lib/python3.13/site-packages/pyqtgraph/graphicsItems/LabelItem.py", line 132, in sizeHint
+    if hint not in self._sizeHint:
+                   ^^^^^^^^^^^^^^
+AttributeError: 'LabelItem' object has no attribute '_sizeHint'. Did you mean: 'sizeHint'?
+Error calling Python override of QGraphicsWidget::sizeHint(): Traceback (most recent call last):
+  File "/home/malina/APPv2/.venv/lib/python3.13/site-packages/pyqtgraph/graphicsItems/LabelItem.py", line 132, in sizeHint
+    if hint not in self._sizeHint:
+                   ^^^^^^^^^^^^^^
+AttributeError: 'LabelItem' object has no attribute '_sizeHint'. Did you mean: 'sizeHint'?
+Error calling Python override of QGraphicsWidget::sizeHint(): Traceback (most recent call last):
+  File "/home/malina/APPv2/.venv/lib/python3.13/site-packages/pyqtgraph/graphicsItems/LabelItem.py", line 132, in sizeHint
+    if hint not in self._sizeHint:
+                   ^^^^^^^^^^^^^^
+AttributeError: 'LabelItem' object has no attribute '_sizeHint'. Did you mean: 'sizeHint'?
+Error calling Python override of QGraphicsWidget::sizeHint(): Traceback (most recent call last):
+  File "/home/malina/APPv2/.venv/lib/python3.13/site-packages/pyqtgraph/graphicsItems/LabelItem.py", line 132, in sizeHint
+    if hint not in self._sizeHint:
+                   ^^^^^^^^^^^^^^
+AttributeError: 'LabelItem' object has no attribute '_sizeHint'. Did you mean: 'sizeHint'?
+Error calling Python override of QGraphicsWidget::sizeHint(): Traceback (most recent call last):
+  File "/home/malina/APPv2/.venv/lib/python3.13/site-packages/pyqtgraph/graphicsItems/LabelItem.py", line 132, in sizeHint
+    if hint not in self._sizeHint:
+                   ^^^^^^^^^^^^^^
+AttributeError: 'LabelItem' object has no attribute '_sizeHint'. Did you mean: 'sizeHint'?
+..................Błąd modelu lokalnego
+Traceback (most recent call last):
+  File "/home/malina/APPv2/modules/measurement_assistant/backend.py", line 159, in generate
+    parsed = parse_response(text)
+  File "/home/malina/APPv2/modules/measurement_assistant/plan_schema.py", line 40, in parse_response
+    result = json.loads(text, object_pairs_hook=no_duplicates,
+                        parse_constant=lambda value: (_ for _ in ()).throw(ValueError(value)))
+  File "/usr/lib/python3.13/json/__init__.py", line 359, in loads
+    return cls(**kw).decode(s)
+           ~~~~~~~~~~~~~~~~^^^
+  File "/usr/lib/python3.13/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/json/decoder.py", line 363, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/malina/APPv2/modules/measurement_assistant/controller.py", line 33, in generate
+    self.generated.emit(self.backend.generate(request, self.status.emit, stop_event=self.stop_event))
+                        ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/malina/APPv2/modules/measurement_assistant/backend.py", line 175, in generate
+    raise ValueError(f"Model dwukrotnie zwrócił błędną ekstrakcję: {exc}") from exc
+ValueError: Model dwukrotnie zwrócił błędną ekstrakcję: Expecting value: line 1 column 1 (char 0)
+Asystent pomiaru: Model dwukrotnie zwrócił błędną ekstrakcję: Expecting value: line 1 column 1 (char 0)
+....................................F.....................
+======================================================================
+FAIL: test_button_is_between_port_controls_and_paddle_panels (test_polarization_optimizer.PolarizationOptimizerTests.test_button_is_between_port_controls_and_paddle_panels)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/malina/APPv2/tests_x/test_polarization_optimizer.py", line 49, in test_button_is_between_port_controls_and_paddle_panels
+    self.assertIs(layout.itemAt(1).widget(), panel.optimization_button)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: None is not <PySide6.QtWidgets.QPushButton(0x7c6ff00) at 0x7fff5310d4c0>
+
+----------------------------------------------------------------------
+Ran 141 tests in 16.209s
+
+FAILED (failures=1)

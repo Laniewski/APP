@@ -96,7 +96,7 @@ class MeasurementAssistantPanel(QWidget):
                                    + "\nTokeny: " + str(metrics.get("completion_tokens", "—")))
 
     def show_plan(self, plan, validation, raw_response=None):
-        self._json_text = raw_response if isinstance(raw_response, str) else json.dumps(plan, ensure_ascii=False, indent=2)
+        self._json_text = json.dumps(plan, ensure_ascii=False, indent=2) if isinstance(plan, dict) else (raw_response or "null")
         self.copy_button.setEnabled(True)
         self.result_label.setText("Plan odrzucony" if validation.errors else
                                   "Plan z brakami" if validation.missing_parameters else "Poprawny plan")

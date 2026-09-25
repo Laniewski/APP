@@ -1,0 +1,16 @@
+[
+  {
+    "source": "benchmark_results/before_null_contract/qwen35_2b_results.json",
+    "fixed_occurrence_scoring_before": 11,
+    "deterministic_replay_after": 14,
+    "cases": 14,
+    "note": "After is grammar replay, not fresh LLM inference."
+  },
+  {
+    "source": "benchmark_results/qwen35_2b_results.json",
+    "fixed_occurrence_scoring_before": 13,
+    "deterministic_replay_after": 14,
+    "cases": 14,
+    "note": "After is grammar replay, not fresh LLM inference."
+  }
+]

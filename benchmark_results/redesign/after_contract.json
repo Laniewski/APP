@@ -1,0 +1,270 @@
+{
+  "prompt": "Przepisz ponumerowane fragmenty polecenia na JSON {steps:[{id,action,args}]}. Zachowaj kolejność i id fragmentu. Każdą czynność zachowaj. Nieobsługiwana lub niejasna czynność: action=unsupported, args={}. Grzałka, zapis pliku, mail i stabilizacja są nieobsługiwane. Wartości bierz wyłącznie z danego fragmentu; brakujący wymagany argument zwróć jako null. Nie przenoś liczb między fragmentami. Łopatki w liczbie mnogiej oznaczają obie (1,2). Jednostki domyślne narzędzi: C, V, stopnie, sekundy. Bez opisów, tytułu, kodu i komentarzy. Narzędzia: [{\"action\":\"set_temperature\",\"meaning\":\"Ustaw temperaturę zadaną TC200; nie włącza grzałki ani nie czeka na stabilizację.\",\"args\":{\"value_c\":{\"unit\":\"°C\",\"nullable\":true}}},{\"action\":\"set_piezo_voltage\",\"meaning\":\"Ustaw napięcie piezo MDT694B; zakres sprawdza istniejący sterownik.\",\"args\":{\"value_v\":{\"unit\":\"V\",\"nullable\":true}}},{\"action\":\"set_polarization_angle\",\"meaning\":\"Ustaw kąt jednej łopatki MPC220 i poczekaj na zakończenie ruchu.\",\"args\":{\"paddle\":{\"unit\":null,\"nullable\":true,\"choices\":[1,2],\"aliases\":{\"1\":[\"pierwsza\",\"pierwszy\"],\"2\":[\"druga\",\"drugi\"]}},\"angle_deg\":{\"unit\":\"stopnie\",\"nullable\":true}}},{\"action\":\"start_measurement\",\"meaning\":\"Rozpocznij ADS1263 z kanałami wybranymi w GUI.\",\"args\":{}},{\"action\":\"stop_measurement\",\"meaning\":\"Zatrzymaj ADS1263; dane pozostają w buforze.\",\"args\":{}},{\"action\":\"wait\",\"meaning\":\"Poczekaj podaną liczbę sekund; nie jest to detekcja stabilizacji.\",\"args\":{\"seconds\":{\"unit\":\"s\",\"nullable\":true}}}]",
+  "schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "steps"
+    ],
+    "properties": {
+      "steps": {
+        "type": "array",
+        "maxItems": 12,
+        "items": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "action",
+                "args"
+              ],
+              "properties": {
+                "action": {
+                  "type": "string",
+                  "const": "set_temperature"
+                },
+                "args": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "value_c"
+                  ],
+                  "properties": {
+                    "value_c": {
+                      "type": [
+                        "number",
+                        "null"
+                      ],
+                      "description": "Temperatura zadana",
+                      "minimum": 20.0,
+                      "maximum": 200.0
+                    }
+                  }
+                },
+                "id": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "action",
+                "args"
+              ],
+              "properties": {
+                "action": {
+                  "type": "string",
+                  "const": "set_piezo_voltage"
+                },
+                "args": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "value_v"
+                  ],
+                  "properties": {
+                    "value_v": {
+                      "type": [
+                        "number",
+                        "null"
+                      ],
+                      "description": "Napięcie piezo"
+                    }
+                  }
+                },
+                "id": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "action",
+                "args"
+              ],
+              "properties": {
+                "action": {
+                  "type": "string",
+                  "const": "set_polarization_angle"
+                },
+                "args": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "paddle",
+                    "angle_deg"
+                  ],
+                  "properties": {
+                    "paddle": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "description": "Numer łopatki",
+                      "enum": [
+                        1,
+                        2,
+                        null
+                      ]
+                    },
+                    "angle_deg": {
+                      "type": [
+                        "number",
+                        "null"
+                      ],
+                      "description": "Kąt łopatki",
+                      "minimum": 1.0,
+                      "maximum": 160.0
+                    }
+                  }
+                },
+                "id": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "action",
+                "args"
+              ],
+              "properties": {
+                "action": {
+                  "type": "string",
+                  "const": "start_measurement"
+                },
+                "args": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [],
+                  "properties": {}
+                },
+                "id": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "action",
+                "args"
+              ],
+              "properties": {
+                "action": {
+                  "type": "string",
+                  "const": "stop_measurement"
+                },
+                "args": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [],
+                  "properties": {}
+                },
+                "id": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "action",
+                "args"
+              ],
+              "properties": {
+                "action": {
+                  "type": "string",
+                  "const": "wait"
+                },
+                "args": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "seconds"
+                  ],
+                  "properties": {
+                    "seconds": {
+                      "type": [
+                        "number",
+                        "null"
+                      ],
+                      "description": "Czas oczekiwania",
+                      "minimum": 0,
+                      "maximum": 3600
+                    }
+                  }
+                },
+                "id": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "action",
+                "args"
+              ],
+              "properties": {
+                "action": {
+                  "const": "unsupported",
+                  "type": "string"
+                },
+                "args": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {}
+                },
+                "id": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "context_size": 2048,
+  "threads": 3,
+  "temperature": 0,
+  "max_tokens_per_request": 400,
+  "source_hashes": {
+    "modules/measurement_assistant/controller.py": "9cde06c721a1b25a8f12090a20521f9f5ebe5aed74040296f7477b5e1fbe5c77",
+    "modules/measurement_assistant/__init__.py": "80ebc9dec3a54321a73c7de749d3aac5bcbf2d6c71c6c086b8c08083f1f6c2e9",
+    "modules/measurement_assistant/runner.py": "3e2c30c05f488a26da31cd8d6bde2261f00571abd4bb32f87fe79e4c88fe2626",
+    "modules/measurement_assistant/panel.py": "71c3ad0f11edc043efb07add4759915d9c755cddfc785e1c63c0fd2944072fa6",
+    "modules/measurement_assistant/actions.py": "c9f331f561bf8d1bbe8f70c88b2ac582ee373332dd5e5c286ae785aaf7e6dab8",
+    "modules/measurement_assistant/backend.py": "a030b124d89cbf047ae30e3f7bd4fd9f5892897aca8a059ff6c477ec7e3ec064",
+    "modules/measurement_assistant/grounding.py": "8282f2df73f5a60964b6282db201da66ec0a51f4542efef2152655e02bc804c7",
+    "modules/measurement_assistant/context_builder.py": "25b671def28496a8c03c35a2a314cd9942f9f9b3c48d2e3ba0be0313dde961d0",
+    "modules/measurement_assistant/config.py": "83d8241443530a4b9e3689d321fbf6f3f2316ae58bcd04f11d7efda1124798f6",
+    "modules/measurement_assistant/script_builder.py": "45eb12d694b081e99cff72d2c1f1c6a4ab0ada201edd862a5986a68fde7a4e8d",
+    "modules/measurement_assistant/plan_schema.py": "417a93b68a2d644a99568703dc5b0f497952d5cbd9f60b04cfbce53a0e4c7478"
+  }
+}

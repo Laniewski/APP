@@ -1,0 +1,1782 @@
+{
+  "mode": "after",
+  "summary": {
+    "action_recognition_accuracy": 1.0,
+    "action_order_accuracy": 1.0,
+    "argument_binding_accuracy": 1.0,
+    "missing_argument_accuracy": 1.0,
+    "unsupported_action_recall": 1.0,
+    "unsupported_action_false_positive_rate": 0.0,
+    "hallucinated_action_rate": 0.0,
+    "hallucinated_parameter_rate": 0.0,
+    "dropped_requested_action_rate": 0.0,
+    "json_validity": 1.0,
+    "status_correct": 1.0,
+    "full_semantic_plan_success": 1.0,
+    "schema_validity": 1.0,
+    "elapsed_s": 26.820775309833454,
+    "prompt_tokens": 629.5833333333334,
+    "output_tokens": 108.41666666666667,
+    "tokens_per_s": 4.983812305903731
+  },
+  "tests": [
+    {
+      "case": "A",
+      "request": "Ustaw piezo na 12 V.",
+      "expected": [
+        [
+          "set_piezo_voltage",
+          {
+            "value_v": 12
+          }
+        ]
+      ],
+      "raw": "[\"{\\n  \\\"steps\\\": [\\n    {\\n      \\\"action\\\": \\\"set_piezo_voltage\\\",\\n      \\\"args\\\": {\\n        \\\"value_v\\\": 12\\n      },\\n      \\\"id\\\": 0\\n    }\\n  ]\\n}\"]",
+      "metrics": {
+        "elapsed_s": 31.956146710999747,
+        "completion_tokens": 57,
+        "prompt_tokens": 487,
+        "tokens_per_s": 5.125744401967711,
+        "end_to_end_tokens_per_s": 1.783694402065685,
+        "requests": 1,
+        "usage_by_request": [
+          {
+            "completion_tokens": 57,
+            "prompt_tokens": 487,
+            "total_tokens": 544,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "timings": {
+              "cache_n": 0,
+              "prompt_n": 487,
+              "prompt_ms": 20822.573,
+              "prompt_per_token_ms": 42.75682340862423,
+              "prompt_per_second": 23.388079849690044,
+              "predicted_n": 57,
+              "predicted_ms": 11120.336,
+              "predicted_per_token_ms": 198.57742857142856,
+              "predicted_per_second": 5.035819061582312
+            }
+          }
+        ],
+        "extracted_steps": [
+          {
+            "action": "set_piezo_voltage",
+            "args": {
+              "value_v": 12
+            },
+            "id": 0
+          }
+        ],
+        "model_agrees": true
+      },
+      "status": "COMPLETE",
+      "validation_errors": [],
+      "schema_validity": true,
+      "raw_score": {
+        "action_recognition_accuracy": 1.0,
+        "action_order_accuracy": true,
+        "argument_binding_accuracy": 1.0,
+        "missing_argument_accuracy": null,
+        "unsupported_action_recall": null,
+        "unsupported_action_false_positive_rate": 0.0,
+        "hallucinated_action_rate": 0.0,
+        "hallucinated_parameter_rate": 0.0,
+        "dropped_requested_action_rate": 0.0,
+        "json_validity": true,
+        "status_correct": true,
+        "full_semantic_plan_success": true
+      },
+      "plan": {
+        "title": "Plan procedury",
+        "steps": [
+          {
+            "description": "Ustaw piezo na 12 V",
+            "action": "set_piezo_voltage",
+            "args": {
+              "value_v": 12.0
+            },
+            "source": [
+              0,
+              19
+            ]
+          }
+        ],
+        "missing_parameters": [],
+        "notes": [],
+        "request": "Ustaw piezo na 12 V."
+      },
+      "elapsed_s": 31.96005298,
+      "action_recognition_accuracy": 1.0,
+      "action_order_accuracy": true,
+      "argument_binding_accuracy": 1.0,
+      "missing_argument_accuracy": null,
+      "unsupported_action_recall": null,
+      "unsupported_action_false_positive_rate": 0.0,
+      "hallucinated_action_rate": 0.0,
+      "hallucinated_parameter_rate": 0.0,
+      "dropped_requested_action_rate": 0.0,
+      "json_validity": true,
+      "status_correct": true,
+      "full_semantic_plan_success": true,
+      "prompt_tokens": 487,
+      "output_tokens": 57,
+      "tokens_per_s": 5.125744401967711
+    },
+    {
+      "case": "B",
+      "request": "Ustaw piezo.",
+      "expected": [
+        [
+          "set_piezo_voltage",
+          {
+            "value_v": null
+          }
+        ]
+      ],
+      "raw": "[\"{\\n  \\\"steps\\\": [\\n    {\\n      \\\"action\\\": \\\"set_piezo_voltage\\\",\\n      \\\"args\\\": {\\n        \\\"value_v\\\": null\\n      },\\n      \\\"id\\\": 0\\n    }\\n  ]\\n}\"]",
+      "metrics": {
+        "elapsed_s": 12.260039496999525,
+        "completion_tokens": 55,
+        "prompt_tokens": 482,
+        "tokens_per_s": 5.106031857553965,
+        "end_to_end_tokens_per_s": 4.486119315803223,
+        "requests": 1,
+        "usage_by_request": [
+          {
+            "completion_tokens": 55,
+            "prompt_tokens": 482,
+            "total_tokens": 537,
+            "prompt_tokens_details": {
+              "cached_tokens": 453
+            },
+            "timings": {
+              "cache_n": 453,
+              "prompt_n": 29,
+              "prompt_ms": 1477.34,
+              "prompt_per_token_ms": 50.94275862068965,
+              "prompt_per_second": 19.62987531644713,
+              "predicted_n": 55,
+              "predicted_ms": 10771.574,
+              "predicted_per_token_ms": 199.4735925925926,
+              "predicted_per_second": 5.013194914689348
+            }
+          }
+        ],
+        "extracted_steps": [
+          {
+            "action": "set_piezo_voltage",
+            "args": {
+              "value_v": null
+            },
+            "id": 0
+          }
+        ],
+        "model_agrees": true
+      },
+      "status": "INCOMPLETE",
+      "validation_errors": [],
+      "schema_validity": true,
+      "raw_score": {
+        "action_recognition_accuracy": 1.0,
+        "action_order_accuracy": true,
+        "argument_binding_accuracy": 1.0,
+        "missing_argument_accuracy": 1.0,
+        "unsupported_action_recall": null,
+        "unsupported_action_false_positive_rate": 0.0,
+        "hallucinated_action_rate": 0.0,
+        "hallucinated_parameter_rate": 0.0,
+        "dropped_requested_action_rate": 0.0,
+        "json_validity": true,
+        "status_correct": true,
+        "full_semantic_plan_success": true
+      },
+      "plan": {
+        "title": "Plan procedury",
+        "steps": [
+          {
+            "description": "Ustaw piezo",
+            "action": "set_piezo_voltage",
+            "args": {
+              "value_v": null
+            },
+            "source": [
+              0,
+              11
+            ]
+          }
+        ],
+        "missing_parameters": [],
+        "notes": [],
+        "request": "Ustaw piezo."
+      },
+      "elapsed_s": 12.261163819999638,
+      "action_recognition_accuracy": 1.0,
+      "action_order_accuracy": true,
+      "argument_binding_accuracy": 1.0,
+      "missing_argument_accuracy": 1.0,
+      "unsupported_action_recall": null,
+      "unsupported_action_false_positive_rate": 0.0,
+      "hallucinated_action_rate": 0.0,
+      "hallucinated_parameter_rate": 0.0,
+      "dropped_requested_action_rate": 0.0,
+      "json_validity": true,
+      "status_correct": true,
+      "full_semantic_plan_success": true,
+      "prompt_tokens": 482,
+      "output_tokens": 55,
+      "tokens_per_s": 5.106031857553965
+    },
+    {
+      "case": "C",
+      "request": "Ustaw drugą łopatkę.",
+      "expected": [
+        [
+          "set_polarization_angle",
+          {
+            "paddle": 2,
+            "angle_deg": null
+          }
+        ]
+      ],
+      "raw": "[\"{\\n  \\\"steps\\\": [\\n    {\\n      \\\"action\\\": \\\"set_polarization_angle\\\",\\n      \\\"args\\\": {\\n        \\\"paddle\\\": 2,\\n        \\\"angle_deg\\\": null\\n      },\\n      \\\"id\\\": 0\\n    }\\n  ]\\n}\"]",
+      "metrics": {
+        "elapsed_s": 14.621794153999872,
+        "completion_tokens": 64,
+        "prompt_tokens": 486,
+        "tokens_per_s": 4.950522620484891,
+        "end_to_end_tokens_per_s": 4.377027834336763,
+        "requests": 1,
+        "usage_by_request": [
+          {
+            "completion_tokens": 64,
+            "prompt_tokens": 486,
+            "total_tokens": 550,
+            "prompt_tokens_details": {
+              "cached_tokens": 453
+            },
+            "timings": {
+              "cache_n": 453,
+              "prompt_n": 33,
+              "prompt_ms": 1675.667,
+              "prompt_per_token_ms": 50.777787878787876,
+              "prompt_per_second": 19.69365034938326,
+              "predicted_n": 64,
+              "predicted_ms": 12927.928,
+              "predicted_per_token_ms": 205.20520634920635,
+              "predicted_per_second": 4.873170704539815
+            }
+          }
+        ],
+        "extracted_steps": [
+          {
+            "action": "set_polarization_angle",
+            "args": {
+              "paddle": 2,
+              "angle_deg": null
+            },
+            "id": 0
+          }
+        ],
+        "model_agrees": true
+      },
+      "status": "INCOMPLETE",
+      "validation_errors": [],
+      "schema_validity": true,
+      "raw_score": {
+        "action_recognition_accuracy": 1.0,
+        "action_order_accuracy": true,
+        "argument_binding_accuracy": 1.0,
+        "missing_argument_accuracy": 1.0,
+        "unsupported_action_recall": null,
+        "unsupported_action_false_positive_rate": 0.0,
+        "hallucinated_action_rate": 0.0,
+        "hallucinated_parameter_rate": 0.0,
+        "dropped_requested_action_rate": 0.0,
+        "json_validity": true,
+        "status_correct": true,
+        "full_semantic_plan_success": true
+      },
+      "plan": {
+        "title": "Plan procedury",
+        "steps": [
+          {
+            "description": "Ustaw drugą łopatkę",
+            "action": "set_polarization_angle",
+            "args": {
+              "paddle": 2,
+              "angle_deg": null
+            },
+            "source": [
+              0,
+              19
+            ]
+          }
+        ],
+        "missing_parameters": [],
+        "notes": [],
+        "request": "Ustaw drugą łopatkę."
+      },
+      "elapsed_s": 14.623311147000095,
+      "action_recognition_accuracy": 1.0,
+      "action_order_accuracy": true,
+      "argument_binding_accuracy": 1.0,
+      "missing_argument_accuracy": 1.0,
+      "unsupported_action_recall": null,
+      "unsupported_action_false_positive_rate": 0.0,
+      "hallucinated_action_rate": 0.0,
+      "hallucinated_parameter_rate": 0.0,
+      "dropped_requested_action_rate": 0.0,
+      "json_validity": true,
+      "status_correct": true,
+      "full_semantic_plan_success": true,
+      "prompt_tokens": 486,
+      "output_tokens": 64,
+      "tokens_per_s": 4.950522620484891
+    },
+    {
+      "case": "D",
+      "request": "Ustaw drugą łopatkę na 30 stopni.",
+      "expected": [
+        [
+          "set_polarization_angle",
+          {
+            "paddle": 2,
+            "angle_deg": 30
+          }
+        ]
+      ],
+      "raw": "[\"{\\n  \\\"steps\\\": [\\n    {\\n      \\\"action\\\": \\\"set_polarization_angle\\\",\\n      \\\"args\\\": {\\n        \\\"paddle\\\": null,\\n        \\\"angle_deg\\\": 30\\n      },\\n      \\\"id\\\": 0\\n    }\\n  ]\\n}\"]",
+      "metrics": {
+        "elapsed_s": 15.101765184000215,
+        "completion_tokens": 65,
+        "prompt_tokens": 492,
+        "tokens_per_s": 4.991088603263819,
+        "end_to_end_tokens_per_s": 4.304132610197462,
+        "requests": 1,
+        "usage_by_request": [
+          {
+            "completion_tokens": 65,
+            "prompt_tokens": 492,
+            "total_tokens": 557,
+            "prompt_tokens_details": {
+              "cached_tokens": 453
+            },
+            "timings": {
+              "cache_n": 453,
+              "prompt_n": 39,
+              "prompt_ms": 2063.432,
+              "prompt_per_token_ms": 52.90851282051282,
+              "prompt_per_second": 18.900550151398257,
+              "predicted_n": 65,
+              "predicted_ms": 13023.211,
+              "predicted_per_token_ms": 203.487671875,
+              "predicted_per_second": 4.914302624752068
+            }
+          }
+        ],
+        "extracted_steps": [
+          {
+            "action": "set_polarization_angle",
+            "args": {
+              "paddle": null,
+              "angle_deg": 30
+            },
+            "id": 0
+          }
+        ],
+        "model_agrees": false
+      },
+      "status": "COMPLETE",
+      "validation_errors": [],
+      "schema_validity": true,
+      "raw_score": {
+        "action_recognition_accuracy": 1.0,
+        "action_order_accuracy": true,
+        "argument_binding_accuracy": 0.5,
+        "missing_argument_accuracy": null,
+        "unsupported_action_recall": null,
+        "unsupported_action_false_positive_rate": 0.0,
+        "hallucinated_action_rate": 0.0,
+        "hallucinated_parameter_rate": 0.0,
+        "dropped_requested_action_rate": 0.0,
+        "json_validity": true,
+        "status_correct": false,
+        "full_semantic_plan_success": false
+      },
+      "plan": {
+        "title": "Plan procedury",
+        "steps": [
+          {
+            "description": "Ustaw drugą łopatkę na 30 stopni",
+            "action": "set_polarization_angle",
+            "args": {
+              "paddle": 2,
+              "angle_deg": 30.0
+            },
+            "source": [
+              0,
+              32
+            ]
+          }
+        ],
+        "missing_parameters": [],
+        "notes": [
+          "Ekstrakcja modelu różniła się od interpretacji źródła. Plan wyznaczono ograniczoną gramatyką; nierozpoznane fragmenty zablokowano."
+        ],
+        "request": "Ustaw drugą łopatkę na 30 stopni."
+      },
+      "elapsed_s": 15.10306198500075,
+      "action_recognition_accuracy": 1.0,
+      "action_order_accuracy": true,
+      "argument_binding_accuracy": 1.0,
+      "missing_argument_accuracy": null,
+      "unsupported_action_recall": null,
+      "unsupported_action_false_positive_rate": 0.0,
+      "hallucinated_action_rate": 0.0,
+      "hallucinated_parameter_rate": 0.0,
+      "dropped_requested_action_rate": 0.0,
+      "json_validity": true,
+      "status_correct": true,
+      "full_semantic_plan_success": true,
+      "prompt_tokens": 492,
+      "output_tokens": 65,
+      "tokens_per_s": 4.991088603263819
+    },
+    {
+      "case": "E",
+      "request": "Ustaw temperaturę na 37 stopni i rozpocznij pomiar.",
+      "expected": [
+        [
+          "set_temperature",
+          {
+            "value_c": 37
+          }
+        ],
+        [
+          "start_measurement",
+          {}
+        ]
+      ],
+      "raw": "[\"{\\n  \\\"steps\\\": [\\n    {\\n      \\\"action\\\": \\\"set_temperature\\\",\\n      \\\"args\\\": {\\n        \\\"value_c\\\": 37\\n      },\\n      \\\"id\\\": 0\\n    },\\n    {\\n      \\\"action\\\": \\\"start_measurement\\\",\\n      \\\"args\\\": {},\\n      \\\"id\\\": 1\\n    }\\n  ]\\n}\"]",
+      "metrics": {
+        "elapsed_s": 19.354573714999788,
+        "completion_tokens": 82,
+        "prompt_tokens": 507,
+        "tokens_per_s": 4.945412297817071,
+        "end_to_end_tokens_per_s": 4.236724673323599,
+        "requests": 1,
+        "usage_by_request": [
+          {
+            "completion_tokens": 82,
+            "prompt_tokens": 507,
+            "total_tokens": 589,
+            "prompt_tokens_details": {
+              "cached_tokens": 453
+            },
+            "timings": {
+              "cache_n": 453,
+              "prompt_n": 54,
+              "prompt_ms": 2761.92,
+              "prompt_per_token_ms": 51.14666666666667,
+              "prompt_per_second": 19.551616266944734,
+              "predicted_n": 82,
+              "predicted_ms": 16581.024,
+              "predicted_per_token_ms": 204.704,
+              "predicted_per_second": 4.8851023917461305
+            }
+          }
+        ],
+        "extracted_steps": [
+          {
+            "action": "set_temperature",
+            "args": {
+              "value_c": 37
+            },
+            "id": 0
+          },
+          {
+            "action": "start_measurement",
+            "args": {},
+            "id": 1
+          }
+        ],
+        "model_agrees": true
+      },
+      "status": "COMPLETE",
+      "validation_errors": [],
+      "schema_validity": true,
+      "raw_score": {
+        "action_recognition_accuracy": 1.0,
+        "action_order_accuracy": true,
+        "argument_binding_accuracy": 1.0,
+        "missing_argument_accuracy": null,
+        "unsupported_action_recall": null,
+        "unsupported_action_false_positive_rate": 0.0,
+        "hallucinated_action_rate": 0.0,
+        "hallucinated_parameter_rate": 0.0,
+        "dropped_requested_action_rate": 0.0,
+        "json_validity": true,
+        "status_correct": true,
+        "full_semantic_plan_success": true
+      },
+      "plan": {
+        "title": "Plan procedury",
+        "steps": [
+          {
+            "description": "Ustaw temperaturę na 37 stopni",
+            "action": "set_temperature",
+            "args": {
+              "value_c": 37.0
+            },
+            "source": [
+              0,
+              31
+            ]
+          },
+          {
+            "description": "rozpocznij pomiar",
+            "action": "start_measurement",
+            "args": {},
+            "source": [
+              33,
+              50
+            ]
+          }
+        ],
+        "missing_parameters": [],
+        "notes": [],
+        "request": "Ustaw temperaturę na 37 stopni i rozpocznij pomiar."
+      },
+      "elapsed_s": 19.355806668000696,
+      "action_recognition_accuracy": 1.0,
+      "action_order_accuracy": true,
+      "argument_binding_accuracy": 1.0,
+      "missing_argument_accuracy": null,
+      "unsupported_action_recall": null,
+      "unsupported_action_false_positive_rate": 0.0,
+      "hallucinated_action_rate": 0.0,
+      "hallucinated_parameter_rate": 0.0,
+      "dropped_requested_action_rate": 0.0,
+      "json_validity": true,
+      "status_correct": true,
+      "full_semantic_plan_success": true,
+      "prompt_tokens": 507,
+      "output_tokens": 82,
+      "tokens_per_s": 4.945412297817071
+    },
+    {
+      "case": "F",
+      "request": "Włącz grzałkę.",
+      "expected": [
+        [
+          "unsupported",
+          {}
+        ]
+      ],
+      "raw": "[\"{\\n  \\\"steps\\\": [\\n    {\\n      \\\"action\\\": \\\"unsupported\\\",\\n      \\\"args\\\": {},\\n      \\\"id\\\": 0\\n    }\\n  ]\\n}\"]",
+      "metrics": {
+        "elapsed_s": 9.780074152999987,
+        "completion_tokens": 41,
+        "prompt_tokens": 483,
+        "tokens_per_s": 5.044892157432135,
+        "end_to_end_tokens_per_s": 4.192197253169442,
+        "requests": 1,
+        "usage_by_request": [
+          {
+            "completion_tokens": 41,
+            "prompt_tokens": 483,
+            "total_tokens": 524,
+            "prompt_tokens_details": {
+              "cached_tokens": 453
+            },
+            "timings": {
+              "cache_n": 453,
+              "prompt_n": 30,
+              "prompt_ms": 1637.759,
+              "prompt_per_token_ms": 54.591966666666664,
+              "prompt_per_second": 18.317713412046583,
+              "predicted_n": 41,
+              "predicted_ms": 8127.032,
+              "predicted_per_token_ms": 203.1758,
+              "predicted_per_second": 4.921846007250863
+            }
+          }
+        ],
+        "extracted_steps": [
+          {
+            "action": "unsupported",
+            "args": {},
+            "id": 0
+          }
+        ],
+        "model_agrees": true
+      },
+      "status": "INVALID",
+      "validation_errors": [
+        "Krok 1: nieobsługiwana lub nierozpoznana czynność: Włącz grzałkę"
+      ],
+      "schema_validity": true,
+      "raw_score": {
+        "action_recognition_accuracy": 1.0,
+        "action_order_accuracy": true,
+        "argument_binding_accuracy": null,
+        "missing_argument_accuracy": null,
+        "unsupported_action_recall": 1.0,
+        "unsupported_action_false_positive_rate": null,
+        "hallucinated_action_rate": 0.0,
+        "hallucinated_parameter_rate": null,
+        "dropped_requested_action_rate": 0.0,
+        "json_validity": true,
+        "status_correct": true,
+        "full_semantic_plan_success": true
+      },
+      "plan": {
+        "title": "Plan procedury",
+        "steps": [
+          {
+            "description": "Włącz grzałkę",
+            "action": "unsupported",
+            "args": {},
+            "source": [
+              0,
+              13
+            ]
+          }
+        ],
+        "missing_parameters": [],
+        "notes": [],
+        "request": "Włącz grzałkę."
+      },
+      "elapsed_s": 9.781316755000262,
+      "action_recognition_accuracy": 1.0,
+      "action_order_accuracy": true,
+      "argument_binding_accuracy": null,
+      "missing_argument_accuracy": null,
+      "unsupported_action_recall": 1.0,
+      "unsupported_action_false_positive_rate": null,
+      "hallucinated_action_rate": 0.0,
+      "hallucinated_parameter_rate": null,
+      "dropped_requested_action_rate": 0.0,
+      "json_validity": true,
+      "status_correct": true,
+      "full_semantic_plan_success": true,
+      "prompt_tokens": 483,
+      "output_tokens": 41,
+      "tokens_per_s": 5.044892157432135
+    },
+    {
+      "case": "G",
+      "request": "Zapisz plik.",
+      "expected": [
+        [
+          "unsupported",
+          {}
+        ]
+      ],
+      "raw": "[\"{\\n  \\\"steps\\\": [\\n    {\\n      \\\"action\\\": \\\"set_temperature\\\",\\n      \\\"args\\\": {\\n        \\\"value_c\\\": null\\n      },\\n      \\\"id\\\": 0\\n    }\\n  ]\\n}\"]",
+      "metrics": {
+        "elapsed_s": 11.956984043000375,
+        "completion_tokens": 52,
+        "prompt_tokens": 483,
+        "tokens_per_s": 5.050007701261745,
+        "end_to_end_tokens_per_s": 4.3489227561895785,
+        "requests": 1,
+        "usage_by_request": [
+          {
+            "completion_tokens": 52,
+            "prompt_tokens": 483,
+            "total_tokens": 535,
+            "prompt_tokens_details": {
+              "cached_tokens": 453
+            },
+            "timings": {
+              "cache_n": 453,
+              "prompt_n": 30,
+              "prompt_ms": 1648.99,
+              "prompt_per_token_ms": 54.96633333333333,
+              "prompt_per_second": 18.192954475163585,
+              "predicted_n": 52,
+              "predicted_ms": 10297.014,
+              "predicted_per_token_ms": 201.90223529411765,
+              "predicted_per_second": 4.952892168545173
+            }
+          }
+        ],
+        "extracted_steps": [
+          {
+            "action": "set_temperature",
+            "args": {
+              "value_c": null
+            },
+            "id": 0
+          }
+        ],
+        "model_agrees": false
+      },
+      "status": "INVALID",
+      "validation_errors": [
+        "Krok 1: nieobsługiwana lub nierozpoznana czynność: Zapisz plik"
+      ],
+      "schema_validity": true,
+      "raw_score": {
+        "action_recognition_accuracy": 0.0,
+        "action_order_accuracy": false,
+        "argument_binding_accuracy": null,
+        "missing_argument_accuracy": null,
+        "unsupported_action_recall": 0.0,
+        "unsupported_action_false_positive_rate": null,
+        "hallucinated_action_rate": 1.0,
+        "hallucinated_parameter_rate": 0.0,
+        "dropped_requested_action_rate": 1.0,
+        "json_validity": true,
+        "status_correct": false,
+        "full_semantic_plan_success": false
+      },
+      "plan": {
+        "title": "Plan procedury",
+        "steps": [
+          {
+            "description": "Zapisz plik",
+            "action": "unsupported",
+            "args": {},
+            "source": [
+              0,
+              11
+            ]
+          }
+        ],
+        "missing_parameters": [],
+        "notes": [
+          "Ekstrakcja modelu różniła się od interpretacji źródła. Plan wyznaczono ograniczoną gramatyką; nierozpoznane fragmenty zablokowano."
+        ],
+        "request": "Zapisz plik."
+      },
+      "elapsed_s": 11.958179703000496,
+      "action_recognition_accuracy": 1.0,
+      "action_order_accuracy": true,
+      "argument_binding_accuracy": null,
+      "missing_argument_accuracy": null,
+      "unsupported_action_recall": 1.0,
+      "unsupported_action_false_positive_rate": null,
+      "hallucinated_action_rate": 0.0,
+      "hallucinated_parameter_rate": null,
+      "dropped_requested_action_rate": 0.0,
+      "json_validity": true,
+      "status_correct": true,
+      "full_semantic_plan_success": true,
+      "prompt_tokens": 483,
+      "output_tokens": 52,
+      "tokens_per_s": 5.050007701261745
+    },
+    {
+      "case": "H",
+      "request": "Ustaw piezo na 50 V i włącz grzałkę.",
+      "expected": [
+        [
+          "set_piezo_voltage",
+          {
+            "value_v": 50
+          }
+        ],
+        [
+          "unsupported",
+          {}
+        ]
+      ],
+      "raw": "[\"{\\n  \\\"steps\\\": [\\n    {\\n      \\\"action\\\": \\\"set_piezo_voltage\\\",\\n      \\\"args\\\": {\\n        \\\"value_v\\\": 50\\n      },\\n      \\\"id\\\": 0\\n    },\\n    {\\n      \\\"action\\\": \\\"unsupported\\\",\\n      \\\"args\\\": {},\\n      \\\"id\\\": 1\\n    }\\n  ]\\n}\"]",
+      "metrics": {
+        "elapsed_s": 19.69857241400041,
+        "completion_tokens": 84,
+        "prompt_tokens": 504,
+        "tokens_per_s": 4.937336674813076,
+        "end_to_end_tokens_per_s": 4.264268406592677,
+        "requests": 1,
+        "usage_by_request": [
+          {
+            "completion_tokens": 84,
+            "prompt_tokens": 504,
+            "total_tokens": 588,
+            "prompt_tokens_details": {
+              "cached_tokens": 453
+            },
+            "timings": {
+              "cache_n": 453,
+              "prompt_n": 51,
+              "prompt_ms": 2670.005,
+              "prompt_per_token_ms": 52.35303921568627,
+              "prompt_per_second": 19.101087825678228,
+              "predicted_n": 84,
+              "predicted_ms": 17013.221,
+              "predicted_per_token_ms": 204.97856626506027,
+              "predicted_per_second": 4.878558857255777
+            }
+          }
+        ],
+        "extracted_steps": [
+          {
+            "action": "set_piezo_voltage",
+            "args": {
+              "value_v": 50
+            },
+            "id": 0
+          },
+          {
+            "action": "unsupported",
+            "args": {},
+            "id": 1
+          }
+        ],
+        "model_agrees": true
+      },
+      "status": "INVALID",
+      "validation_errors": [
+        "Krok 2: nieobsługiwana lub nierozpoznana czynność: włącz grzałkę"
+      ],
+      "schema_validity": true,
+      "raw_score": {
+        "action_recognition_accuracy": 1.0,
+        "action_order_accuracy": true,
+        "argument_binding_accuracy": 1.0,
+        "missing_argument_accuracy": null,
+        "unsupported_action_recall": 1.0,
+        "unsupported_action_false_positive_rate": 0.0,
+        "hallucinated_action_rate": 0.0,
+        "hallucinated_parameter_rate": 0.0,
+        "dropped_requested_action_rate": 0.0,
+        "json_validity": true,
+        "status_correct": true,
+        "full_semantic_plan_success": true
+      },
+      "plan": {
+        "title": "Plan procedury",
+        "steps": [
+          {
+            "description": "Ustaw piezo na 50 V",
+            "action": "set_piezo_voltage",
+            "args": {
+              "value_v": 50.0
+            },
+            "source": [
+              0,
+              20
+            ]
+          },
+          {
+            "description": "włącz grzałkę",
+            "action": "unsupported",
+            "args": {},
+            "source": [
+              22,
+              35
+            ]
+          }
+        ],
+        "missing_parameters": [],
+        "notes": [],
+        "request": "Ustaw piezo na 50 V i włącz grzałkę."
+      },
+      "elapsed_s": 19.700317425999856,
+      "action_recognition_accuracy": 1.0,
+      "action_order_accuracy": true,
+      "argument_binding_accuracy": 1.0,
+      "missing_argument_accuracy": null,
+      "unsupported_action_recall": 1.0,
+      "unsupported_action_false_positive_rate": 0.0,
+      "hallucinated_action_rate": 0.0,
+      "hallucinated_parameter_rate": 0.0,
+      "dropped_requested_action_rate": 0.0,
+      "json_validity": true,
+      "status_correct": true,
+      "full_semantic_plan_success": true,
+      "prompt_tokens": 504,
+      "output_tokens": 84,
+      "tokens_per_s": 4.937336674813076
+    },
+    {
+      "case": "I",
+      "request": "Ustaw łopatkę 1, potem piezo na 50 V, potem łopatki na 100.",
+      "expected": [
+        [
+          "set_polarization_angle",
+          {
+            "paddle": 1,
+            "angle_deg": null
+          }
+        ],
+        [
+          "set_piezo_voltage",
+          {
+            "value_v": 50
+          }
+        ],
+        [
+          "set_polarization_angle",
+          {
+            "paddle": 1,
+            "angle_deg": 100
+          }
+        ],
+        [
+          "set_polarization_angle",
+          {
+            "paddle": 2,
+            "angle_deg": 100
+          }
+        ]
+      ],
+      "raw": "[\"{\\n  \\\"steps\\\": [\\n    {\\n      \\\"action\\\": \\\"set_piezo_voltage\\\",\\n      \\\"args\\\": {\\n        \\\"value_v\\\": 50\\n      },\\n      \\\"id\\\": 1\\n    },\\n    {\\n      \\\"action\\\": \\\"set_temperature\\\",\\n      \\\"args\\\": {\\n        \\\"value_c\\\": 100\\n      },\\n      \\\"id\\\": 2\\n    }\\n  ]\\n}\"]",
+      "metrics": {
+        "elapsed_s": 23.670710344000327,
+        "completion_tokens": 98,
+        "prompt_tokens": 523,
+        "tokens_per_s": 4.87830811513524,
+        "end_to_end_tokens_per_s": 4.140137688129815,
+        "requests": 1,
+        "usage_by_request": [
+          {
+            "completion_tokens": 98,
+            "prompt_tokens": 523,
+            "total_tokens": 621,
+            "prompt_tokens_details": {
+              "cached_tokens": 453
+            },
+            "timings": {
+              "cache_n": 453,
+              "prompt_n": 70,
+              "prompt_ms": 3570.405,
+              "prompt_per_token_ms": 51.005785714285715,
+              "prompt_per_second": 19.605618970396918,
+              "predicted_n": 98,
+              "predicted_ms": 20088.932,
+              "predicted_per_token_ms": 207.10239175257732,
+              "predicted_per_second": 4.828529460899166
+            }
+          }
+        ],
+        "extracted_steps": [
+          {
+            "action": "set_piezo_voltage",
+            "args": {
+              "value_v": 50
+            },
+            "id": 1
+          },
+          {
+            "action": "set_temperature",
+            "args": {
+              "value_c": 100
+            },
+            "id": 2
+          }
+        ],
+        "model_agrees": false
+      },
+      "status": "INCOMPLETE",
+      "validation_errors": [],
+      "schema_validity": true,
+      "raw_score": {
+        "action_recognition_accuracy": 0.25,
+        "action_order_accuracy": false,
+        "argument_binding_accuracy": 0.0,
+        "missing_argument_accuracy": 0.0,
+        "unsupported_action_recall": null,
+        "unsupported_action_false_positive_rate": 0.0,
+        "hallucinated_action_rate": 0.5,
+        "hallucinated_parameter_rate": 1.0,
+        "dropped_requested_action_rate": 0.75,
+        "json_validity": true,
+        "status_correct": false,
+        "full_semantic_plan_success": false
+      },
+      "plan": {
+        "title": "Plan procedury",
+        "steps": [
+          {
+            "description": "Ustaw łopatkę 1",
+            "action": "set_polarization_angle",
+            "args": {
+              "paddle": 1,
+              "angle_deg": null
+            },
+            "source": [
+              0,
+              15
+            ]
+          },
+          {
+            "description": "piezo na 50 V",
+            "action": "set_piezo_voltage",
+            "args": {
+              "value_v": 50.0
+            },
+            "source": [
+              22,
+              36
+            ]
+          },
+          {
+            "description": "łopatki na 100.",
+            "action": "set_polarization_angle",
+            "args": {
+              "paddle": 1,
+              "angle_deg": 100.0
+            },
+            "source": [
+              43,
+              59
+            ]
+          },
+          {
+            "description": "łopatki na 100.",
+            "action": "set_polarization_angle",
+            "args": {
+              "paddle": 2,
+              "angle_deg": 100.0
+            },
+            "source": [
+              43,
+              59
+            ]
+          }
+        ],
+        "missing_parameters": [],
+        "notes": [
+          "Ekstrakcja modelu różniła się od interpretacji źródła. Plan wyznaczono ograniczoną gramatyką; nierozpoznane fragmenty zablokowano."
+        ],
+        "request": "Ustaw łopatkę 1, potem piezo na 50 V, potem łopatki na 100."
+      },
+      "elapsed_s": 23.67207570499977,
+      "action_recognition_accuracy": 1.0,
+      "action_order_accuracy": true,
+      "argument_binding_accuracy": 1.0,
+      "missing_argument_accuracy": 1.0,
+      "unsupported_action_recall": null,
+      "unsupported_action_false_positive_rate": 0.0,
+      "hallucinated_action_rate": 0.0,
+      "hallucinated_parameter_rate": 0.0,
+      "dropped_requested_action_rate": 0.0,
+      "json_validity": true,
+      "status_correct": true,
+      "full_semantic_plan_success": true,
+      "prompt_tokens": 523,
+      "output_tokens": 98,
+      "tokens_per_s": 4.87830811513524
+    },
+    {
+      "case": "J",
+      "request": "Ustaw pierwszą łopatkę na 20, drugą na 40.",
+      "expected": [
+        [
+          "set_polarization_angle",
+          {
+            "paddle": 1,
+            "angle_deg": 20
+          }
+        ],
+        [
+          "set_polarization_angle",
+          {
+            "paddle": 2,
+            "angle_deg": 40
+          }
+        ]
+      ],
+      "raw": "[\"{\\n  \\\"steps\\\": [\\n    {\\n      \\\"action\\\": \\\"set_polarization_angle\\\",\\n      \\\"args\\\": {\\n        \\\"paddle\\\": 1,\\n        \\\"angle_deg\\\": 20\\n      },\\n      \\\"id\\\": 0\\n    },\\n    {\\n      \\\"action\\\": \\\"set_polarization_angle\\\",\\n      \\\"args\\\": {\\n        \\\"paddle\\\": 2,\\n        \\\"angle_deg\\\": 40\\n      },\\n      \\\"id\\\": 1\\n    }\\n  ]\\n}\"]",
+      "metrics": {
+        "elapsed_s": 26.85674860800009,
+        "completion_tokens": 119,
+        "prompt_tokens": 507,
+        "tokens_per_s": 4.955898748073342,
+        "end_to_end_tokens_per_s": 4.430916107415634,
+        "requests": 1,
+        "usage_by_request": [
+          {
+            "completion_tokens": 119,
+            "prompt_tokens": 507,
+            "total_tokens": 626,
+            "prompt_tokens_details": {
+              "cached_tokens": 453
+            },
+            "timings": {
+              "cache_n": 453,
+              "prompt_n": 54,
+              "prompt_ms": 2828.122,
+              "prompt_per_token_ms": 52.37262962962963,
+              "prompt_per_second": 19.09394290628198,
+              "predicted_n": 119,
+              "predicted_ms": 24011.79,
+              "predicted_per_token_ms": 203.48974576271186,
+              "predicted_per_second": 4.9142525401063395
+            }
+          }
+        ],
+        "extracted_steps": [
+          {
+            "action": "set_polarization_angle",
+            "args": {
+              "paddle": 1,
+              "angle_deg": 20
+            },
+            "id": 0
+          },
+          {
+            "action": "set_polarization_angle",
+            "args": {
+              "paddle": 2,
+              "angle_deg": 40
+            },
+            "id": 1
+          }
+        ],
+        "model_agrees": true
+      },
+      "status": "COMPLETE",
+      "validation_errors": [],
+      "schema_validity": true,
+      "raw_score": {
+        "action_recognition_accuracy": 1.0,
+        "action_order_accuracy": true,
+        "argument_binding_accuracy": 1.0,
+        "missing_argument_accuracy": null,
+        "unsupported_action_recall": null,
+        "unsupported_action_false_positive_rate": 0.0,
+        "hallucinated_action_rate": 0.0,
+        "hallucinated_parameter_rate": 0.0,
+        "dropped_requested_action_rate": 0.0,
+        "json_validity": true,
+        "status_correct": true,
+        "full_semantic_plan_success": true
+      },
+      "plan": {
+        "title": "Plan procedury",
+        "steps": [
+          {
+            "description": "Ustaw pierwszą łopatkę na 20",
+            "action": "set_polarization_angle",
+            "args": {
+              "paddle": 1,
+              "angle_deg": 20.0
+            },
+            "source": [
+              0,
+              28
+            ]
+          },
+          {
+            "description": "drugą na 40.",
+            "action": "set_polarization_angle",
+            "args": {
+              "paddle": 2,
+              "angle_deg": 40.0
+            },
+            "source": [
+              29,
+              42
+            ]
+          }
+        ],
+        "missing_parameters": [],
+        "notes": [],
+        "request": "Ustaw pierwszą łopatkę na 20, drugą na 40."
+      },
+      "elapsed_s": 26.858246781999696,
+      "action_recognition_accuracy": 1.0,
+      "action_order_accuracy": true,
+      "argument_binding_accuracy": 1.0,
+      "missing_argument_accuracy": null,
+      "unsupported_action_recall": null,
+      "unsupported_action_false_positive_rate": 0.0,
+      "hallucinated_action_rate": 0.0,
+      "hallucinated_parameter_rate": 0.0,
+      "dropped_requested_action_rate": 0.0,
+      "json_validity": true,
+      "status_correct": true,
+      "full_semantic_plan_success": true,
+      "prompt_tokens": 507,
+      "output_tokens": 119,
+      "tokens_per_s": 4.955898748073342
+    },
+    {
+      "case": "K",
+      "request": "Ustaw pierwszą łopatkę, drugą na 40.",
+      "expected": [
+        [
+          "set_polarization_angle",
+          {
+            "paddle": 1,
+            "angle_deg": null
+          }
+        ],
+        [
+          "set_polarization_angle",
+          {
+            "paddle": 2,
+            "angle_deg": 40
+          }
+        ]
+      ],
+      "raw": "[\"{\\n  \\\"steps\\\": [\\n    {\\n      \\\"action\\\": \\\"set_polarization_angle\\\",\\n      \\\"args\\\": {\\n        \\\"paddle\\\": 1,\\n        \\\"angle_deg\\\": 40\\n      },\\n      \\\"id\\\": 0\\n    }\\n  ]\\n}\"]",
+      "metrics": {
+        "elapsed_s": 15.975292292000631,
+        "completion_tokens": 66,
+        "prompt_tokens": 503,
+        "tokens_per_s": 4.912226330381607,
+        "end_to_end_tokens_per_s": 4.131379807870459,
+        "requests": 1,
+        "usage_by_request": [
+          {
+            "completion_tokens": 66,
+            "prompt_tokens": 503,
+            "total_tokens": 569,
+            "prompt_tokens_details": {
+              "cached_tokens": 453
+            },
+            "timings": {
+              "cache_n": 453,
+              "prompt_n": 50,
+              "prompt_ms": 2527.888,
+              "prompt_per_token_ms": 50.55776,
+              "prompt_per_second": 19.77935731329869,
+              "predicted_n": 66,
+              "predicted_ms": 13435.863,
+              "predicted_per_token_ms": 206.7055846153846,
+              "predicted_per_second": 4.837798658709158
+            }
+          }
+        ],
+        "extracted_steps": [
+          {
+            "action": "set_polarization_angle",
+            "args": {
+              "paddle": 1,
+              "angle_deg": 40
+            },
+            "id": 0
+          }
+        ],
+        "model_agrees": false
+      },
+      "status": "INCOMPLETE",
+      "validation_errors": [],
+      "schema_validity": true,
+      "raw_score": {
+        "action_recognition_accuracy": 0.5,
+        "action_order_accuracy": false,
+        "argument_binding_accuracy": 0.25,
+        "missing_argument_accuracy": 0.0,
+        "unsupported_action_recall": null,
+        "unsupported_action_false_positive_rate": 0.0,
+        "hallucinated_action_rate": 0.0,
+        "hallucinated_parameter_rate": 0.5,
+        "dropped_requested_action_rate": 0.5,
+        "json_validity": true,
+        "status_correct": false,
+        "full_semantic_plan_success": false
+      },
+      "plan": {
+        "title": "Plan procedury",
+        "steps": [
+          {
+            "description": "Ustaw pierwszą łopatkę",
+            "action": "set_polarization_angle",
+            "args": {
+              "paddle": 1,
+              "angle_deg": null
+            },
+            "source": [
+              0,
+              22
+            ]
+          },
+          {
+            "description": "drugą na 40.",
+            "action": "set_polarization_angle",
+            "args": {
+              "paddle": 2,
+              "angle_deg": 40.0
+            },
+            "source": [
+              23,
+              36
+            ]
+          }
+        ],
+        "missing_parameters": [],
+        "notes": [
+          "Ekstrakcja modelu różniła się od interpretacji źródła. Plan wyznaczono ograniczoną gramatyką; nierozpoznane fragmenty zablokowano."
+        ],
+        "request": "Ustaw pierwszą łopatkę, drugą na 40."
+      },
+      "elapsed_s": 15.976512365999952,
+      "action_recognition_accuracy": 1.0,
+      "action_order_accuracy": true,
+      "argument_binding_accuracy": 1.0,
+      "missing_argument_accuracy": 1.0,
+      "unsupported_action_recall": null,
+      "unsupported_action_false_positive_rate": 0.0,
+      "hallucinated_action_rate": 0.0,
+      "hallucinated_parameter_rate": 0.0,
+      "dropped_requested_action_rate": 0.0,
+      "json_validity": true,
+      "status_correct": true,
+      "full_semantic_plan_success": true,
+      "prompt_tokens": 503,
+      "output_tokens": 66,
+      "tokens_per_s": 4.912226330381607
+    },
+    {
+      "case": "L",
+      "request": "rozpocznij pomiar ustaw temerature na 20 stopni wlacz grzalke poczekaj 30 s ustaw lopatke 1 ustaw piezo na 50v ustaw lopatki na 100 ustaw temerature na 30 stopni wlacz grzalke ustaw lopatki zakoncz pomiar zapisz plik",
+      "expected": [
+        [
+          "start_measurement",
+          {}
+        ],
+        [
+          "set_temperature",
+          {
+            "value_c": 20
+          }
+        ],
+        [
+          "unsupported",
+          {}
+        ],
+        [
+          "wait",
+          {
+            "seconds": 30
+          }
+        ],
+        [
+          "set_polarization_angle",
+          {
+            "paddle": 1,
+            "angle_deg": null
+          }
+        ],
+        [
+          "set_piezo_voltage",
+          {
+            "value_v": 50
+          }
+        ],
+        [
+          "set_polarization_angle",
+          {
+            "paddle": 1,
+            "angle_deg": 100
+          }
+        ],
+        [
+          "set_polarization_angle",
+          {
+            "paddle": 2,
+            "angle_deg": 100
+          }
+        ],
+        [
+          "set_temperature",
+          {
+            "value_c": 30
+          }
+        ],
+        [
+          "unsupported",
+          {}
+        ],
+        [
+          "set_polarization_angle",
+          {
+            "paddle": 1,
+            "angle_deg": null
+          }
+        ],
+        [
+          "set_polarization_angle",
+          {
+            "paddle": 2,
+            "angle_deg": null
+          }
+        ],
+        [
+          "stop_measurement",
+          {}
+        ],
+        [
+          "unsupported",
+          {}
+        ]
+      ],
+      "raw": "[\"{\\n  \\\"steps\\\": [\\n    {\\n      \\\"action\\\": \\\"set_temperature\\\",\\n      \\\"args\\\": {\\n        \\\"value_c\\\": 20\\n      },\\n      \\\"id\\\": 1\\n    },\\n    {\\n      \\\"action\\\": \\\"start_measurement\\\",\\n      \\\"args\\\": {},\\n      \\\"id\\\": 0\\n    },\\n    {\\n      \\\"action\\\": \\\"wait\\\",\\n      \\\"args\\\": {\\n        \\\"seconds\\\": null\\n      },\\n      \\\"id\\\": 2\\n    }\\n  ]\\n}\", \"{\\n  \\\"steps\\\": [\\n    {\\n      \\\"action\\\": \\\"wait\\\",\\n      \\\"args\\\": {\\n        \\\"seconds\\\": 30\\n      },\\n      \\\"id\\\": 3\\n    },\\n    {\\n      \\\"action\\\": \\\"set_temperature\\\",\\n      \\\"args\\\": {\\n        \\\"value_c\\\": null\\n      },\\n      \\\"id\\\": 4\\n    },\\n    {\\n      \\\"action\\\": \\\"set_piezo_voltage\\\",\\n      \\\"args\\\": {\\n        \\\"value_v\\\": 50\\n      },\\n      \\\"id\\\": 5\\n    }\\n  ]\\n}\", \"{\\n  \\\"steps\\\": [\\n    {\\n      \\\"action\\\": \\\"set_temperature\\\",\\n      \\\"args\\\": {\\n        \\\"value_c\\\": 30\\n      },\\n      \\\"id\\\": 7\\n    },\\n    {\\n      \\\"action\\\": \\\"set_piezo_voltage\\\",\\n      \\\"args\\\": {\\n        \\\"value_v\\\": null\\n      },\\n      \\\"id\\\": 8\\n    },\\n    {\\n      \\\"action\\\": \\\"start_measurement\\\",\\n      \\\"args\\\": {},\\n      \\\"id\\\": 6\\n    }\\n  ]\\n}\", \"{\\n  \\\"steps\\\": [\\n    {\\n      \\\"action\\\": \\\"set_temperature\\\",\\n      \\\"args\\\": {\\n        \\\"value_c\\\": null\\n      },\\n      \\\"id\\\": 9\\n    },\\n    {\\n      \\\"action\\\": \\\"set_piezo_voltage\\\",\\n      \\\"args\\\": {\\n        \\\"value_v\\\": null\\n      },\\n      \\\"id\\\": 10\\n    },\\n    {\\n      \\\"action\\\": \\\"set_polarization_angle\\\",\\n      \\\"args\\\": {\\n        \\\"paddle\\\": null,\\n        \\\"angle_deg\\\": null\\n      },\\n      \\\"id\\\": 11\\n    }\\n  ]\\n}\"]",
+      "metrics": {
+        "elapsed_s": 120.5964957340002,
+        "completion_tokens": 518,
+        "prompt_tokens": 2098,
+        "tokens_per_s": 4.908278162660167,
+        "end_to_end_tokens_per_s": 4.295315521792218,
+        "requests": 4,
+        "usage_by_request": [
+          {
+            "completion_tokens": 118,
+            "prompt_tokens": 525,
+            "total_tokens": 643,
+            "prompt_tokens_details": {
+              "cached_tokens": 453
+            },
+            "timings": {
+              "cache_n": 453,
+              "prompt_n": 72,
+              "prompt_ms": 3645.058,
+              "prompt_per_token_ms": 50.62580555555556,
+              "prompt_per_second": 19.75277210952473,
+              "predicted_n": 118,
+              "predicted_ms": 23701.45,
+              "predicted_per_token_ms": 202.57649572649572,
+              "predicted_per_second": 4.936406844306994
+            }
+          },
+          {
+            "completion_tokens": 133,
+            "prompt_tokens": 526,
+            "total_tokens": 659,
+            "prompt_tokens_details": {
+              "cached_tokens": 453
+            },
+            "timings": {
+              "cache_n": 453,
+              "prompt_n": 73,
+              "prompt_ms": 3849.189,
+              "prompt_per_token_ms": 52.72861643835616,
+              "prompt_per_second": 18.965033933122015,
+              "predicted_n": 133,
+              "predicted_ms": 27331.439,
+              "predicted_per_token_ms": 207.05635606060605,
+              "predicted_per_second": 4.829603007730402
+            }
+          },
+          {
+            "completion_tokens": 123,
+            "prompt_tokens": 528,
+            "total_tokens": 651,
+            "prompt_tokens_details": {
+              "cached_tokens": 453
+            },
+            "timings": {
+              "cache_n": 453,
+              "prompt_n": 75,
+              "prompt_ms": 4068.505,
+              "prompt_per_token_ms": 54.24673333333333,
+              "prompt_per_second": 18.434289745250403,
+              "predicted_n": 123,
+              "predicted_ms": 25110.129,
+              "predicted_per_token_ms": 205.82072950819673,
+              "predicted_per_second": 4.858597102388442
+            }
+          },
+          {
+            "completion_tokens": 144,
+            "prompt_tokens": 519,
+            "total_tokens": 663,
+            "prompt_tokens_details": {
+              "cached_tokens": 453
+            },
+            "timings": {
+              "cache_n": 453,
+              "prompt_n": 66,
+              "prompt_ms": 3443.377,
+              "prompt_per_token_ms": 52.172378787878785,
+              "prompt_per_second": 19.16723030908321,
+              "predicted_n": 144,
+              "predicted_ms": 29392.973,
+              "predicted_per_token_ms": 205.54526573426574,
+              "predicted_per_second": 4.865108405332117
+            }
+          }
+        ],
+        "extracted_steps": [
+          {
+            "action": "set_temperature",
+            "args": {
+              "value_c": 20
+            },
+            "id": 1
+          },
+          {
+            "action": "start_measurement",
+            "args": {},
+            "id": 0
+          },
+          {
+            "action": "wait",
+            "args": {
+              "seconds": null
+            },
+            "id": 2
+          },
+          {
+            "action": "wait",
+            "args": {
+              "seconds": 30
+            },
+            "id": 3
+          },
+          {
+            "action": "set_temperature",
+            "args": {
+              "value_c": null
+            },
+            "id": 4
+          },
+          {
+            "action": "set_piezo_voltage",
+            "args": {
+              "value_v": 50
+            },
+            "id": 5
+          },
+          {
+            "action": "set_temperature",
+            "args": {
+              "value_c": 30
+            },
+            "id": 7
+          },
+          {
+            "action": "set_piezo_voltage",
+            "args": {
+              "value_v": null
+            },
+            "id": 8
+          },
+          {
+            "action": "start_measurement",
+            "args": {},
+            "id": 6
+          },
+          {
+            "action": "set_temperature",
+            "args": {
+              "value_c": null
+            },
+            "id": 9
+          },
+          {
+            "action": "set_piezo_voltage",
+            "args": {
+              "value_v": null
+            },
+            "id": 10
+          },
+          {
+            "action": "set_polarization_angle",
+            "args": {
+              "paddle": null,
+              "angle_deg": null
+            },
+            "id": 11
+          }
+        ],
+        "model_agrees": false
+      },
+      "status": "INVALID",
+      "validation_errors": [
+        "Krok 3: nieobsługiwana lub nierozpoznana czynność: wlacz grzalke",
+        "Krok 10: nieobsługiwana lub nierozpoznana czynność: wlacz grzalke",
+        "Krok 14: nieobsługiwana lub nierozpoznana czynność: zapisz plik"
+      ],
+      "schema_validity": true,
+      "raw_score": {
+        "action_recognition_accuracy": 0.42857142857142855,
+        "action_order_accuracy": false,
+        "argument_binding_accuracy": 0.21428571428571427,
+        "missing_argument_accuracy": 0.3333333333333333,
+        "unsupported_action_recall": 0.0,
+        "unsupported_action_false_positive_rate": 0.0,
+        "hallucinated_action_rate": 0.5,
+        "hallucinated_parameter_rate": 0.18181818181818182,
+        "dropped_requested_action_rate": 0.5714285714285714,
+        "json_validity": true,
+        "status_correct": false,
+        "full_semantic_plan_success": false
+      },
+      "plan": {
+        "title": "Plan procedury",
+        "steps": [
+          {
+            "description": "rozpocznij pomiar",
+            "action": "start_measurement",
+            "args": {},
+            "source": [
+              0,
+              18
+            ]
+          },
+          {
+            "description": "ustaw temerature na 20 stopni",
+            "action": "set_temperature",
+            "args": {
+              "value_c": 20.0
+            },
+            "source": [
+              18,
+              48
+            ]
+          },
+          {
+            "description": "wlacz grzalke",
+            "action": "unsupported",
+            "args": {},
+            "source": [
+              48,
+              62
+            ]
+          },
+          {
+            "description": "poczekaj 30 s",
+            "action": "wait",
+            "args": {
+              "seconds": 30.0
+            },
+            "source": [
+              62,
+              76
+            ]
+          },
+          {
+            "description": "ustaw lopatke 1",
+            "action": "set_polarization_angle",
+            "args": {
+              "paddle": 1,
+              "angle_deg": null
+            },
+            "source": [
+              76,
+              92
+            ]
+          },
+          {
+            "description": "ustaw piezo na 50v",
+            "action": "set_piezo_voltage",
+            "args": {
+              "value_v": 50.0
+            },
+            "source": [
+              92,
+              111
+            ]
+          },
+          {
+            "description": "ustaw lopatki na 100",
+            "action": "set_polarization_angle",
+            "args": {
+              "paddle": 1,
+              "angle_deg": 100.0
+            },
+            "source": [
+              111,
+              132
+            ]
+          },
+          {
+            "description": "ustaw lopatki na 100",
+            "action": "set_polarization_angle",
+            "args": {
+              "paddle": 2,
+              "angle_deg": 100.0
+            },
+            "source": [
+              111,
+              132
+            ]
+          },
+          {
+            "description": "ustaw temerature na 30 stopni",
+            "action": "set_temperature",
+            "args": {
+              "value_c": 30.0
+            },
+            "source": [
+              132,
+              162
+            ]
+          },
+          {
+            "description": "wlacz grzalke",
+            "action": "unsupported",
+            "args": {},
+            "source": [
+              162,
+              176
+            ]
+          },
+          {
+            "description": "ustaw lopatki",
+            "action": "set_polarization_angle",
+            "args": {
+              "paddle": 1,
+              "angle_deg": null
+            },
+            "source": [
+              176,
+              190
+            ]
+          },
+          {
+            "description": "ustaw lopatki",
+            "action": "set_polarization_angle",
+            "args": {
+              "paddle": 2,
+              "angle_deg": null
+            },
+            "source": [
+              176,
+              190
+            ]
+          },
+          {
+            "description": "zakoncz pomiar",
+            "action": "stop_measurement",
+            "args": {},
+            "source": [
+              190,
+              205
+            ]
+          },
+          {
+            "description": "zapisz plik",
+            "action": "unsupported",
+            "args": {},
+            "source": [
+              205,
+              216
+            ]
+          }
+        ],
+        "missing_parameters": [],
+        "notes": [
+          "Ekstrakcja modelu różniła się od interpretacji źródła. Plan wyznaczono ograniczoną gramatyką; nierozpoznane fragmenty zablokowano."
+        ],
+        "request": "rozpocznij pomiar ustaw temerature na 20 stopni wlacz grzalke poczekaj 30 s ustaw lopatke 1 ustaw piezo na 50v ustaw lopatki na 100 ustaw temerature na 30 stopni wlacz grzalke ustaw lopatki zakoncz pomiar zapisz plik"
+      },
+      "elapsed_s": 120.59925838100025,
+      "action_recognition_accuracy": 1.0,
+      "action_order_accuracy": true,
+      "argument_binding_accuracy": 1.0,
+      "missing_argument_accuracy": 1.0,
+      "unsupported_action_recall": 1.0,
+      "unsupported_action_false_positive_rate": 0.0,
+      "hallucinated_action_rate": 0.0,
+      "hallucinated_parameter_rate": 0.0,
+      "dropped_requested_action_rate": 0.0,
+      "json_validity": true,
+      "status_correct": true,
+      "full_semantic_plan_success": true,
+      "prompt_tokens": 2098,
+      "output_tokens": 518,
+      "tokens_per_s": 4.908278162660167
+    }
+  ]
+}

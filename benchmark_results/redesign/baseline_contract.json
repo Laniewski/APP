@@ -1,0 +1,242 @@
+{
+  "prompt": "Jesteś planerem procedur laboratoryjnych. Zwróć tylko obiekt JSON: title (tekst), steps (lista {description, action, args}), missing_parameters (lista tekstów), notes (lista tekstów). Opisy po polsku. Używaj wyłącznie zdefiniowanych akcji. Nie generuj Python ani shell. Zachowuj operacje i kolejność z bieżącego polecenia użytkownika. Nigdy nie wymyślaj wartości: każdy argument musi pochodzić jawnie z bieżącego polecenia; liczby słowne i numery porządkowe są jawnymi wartościami. Zachowaj rozpoznaną akcję nawet przy braku danych: brakujący wymagany argument zwróć jako null. Nie pomijaj niekompletnej akcji. Null oznacza brak danych, nigdy zero ani wartość domyślną. Wartości przykładów i ograniczenia narzędzi NIE są wartościami domyślnymi. missing_parameters pozostaw []; aplikacja wyznaczy pytania z null. Wyjątek: nieobsługiwane operacje opisz w missing_parameters. Nie decyduj, że plan jest runnable. Sprzęt musi być wcześniej podłączony ręcznie. Nie zgaduj jednostek; niejasność zgłoś pytaniem w missing_parameters. Stabilizacja temperatury jest nieobsługiwana; zgłoś ją w missing_parameters, nigdy nie zastępuj jej wymyślonym wait.\nNarzędzia: [{\"name\":\"set_temperature\",\"description\":\"Ustaw temperaturę zadaną TC200; nie włącza grzałki ani nie czeka na stabilizację.\",\"aliases\":[\"temperatura\",\"temperatura zadana\"],\"arguments\":{\"value_c\":{\"type\":[\"number\",\"null\"],\"description\":\"Temperatura zadana\",\"minimum\":20.0,\"maximum\":200.0,\"required\":true,\"explicit_value\":true,\"unit\":\"°C\",\"aliases\":[\"temperatura\"]}}},{\"name\":\"set_piezo_voltage\",\"description\":\"Ustaw napięcie piezo MDT694B; zakres sprawdza istniejący sterownik.\",\"aliases\":[\"piezo\",\"płytka piezo\",\"napięcie piezo\",\"kontroler piezo\"],\"arguments\":{\"value_v\":{\"type\":[\"number\",\"null\"],\"description\":\"Napięcie piezo\",\"required\":true,\"explicit_value\":true,\"unit\":\"V\",\"aliases\":[\"napięcie\"]}}},{\"name\":\"set_polarization_angle\",\"description\":\"Ustaw kąt jednej łopatki MPC220 i poczekaj na zakończenie ruchu.\",\"aliases\":[\"łopatka\",\"łopatka polaryzacji\",\"nastawnik polaryzacji\",\"polaryzacja\"],\"arguments\":{\"paddle\":{\"type\":[\"integer\",\"null\"],\"description\":\"Numer łopatki\",\"enum\":[1,2,null],\"required\":true,\"explicit_value\":true,\"choice_aliases\":{\"1\":[\"pierwsza\",\"pierwszy\"],\"2\":[\"druga\",\"drugi\"]}},\"angle_deg\":{\"type\":[\"number\",\"null\"],\"description\":\"Kąt łopatki\",\"minimum\":1.0,\"maximum\":160.0,\"required\":true,\"explicit_value\":true,\"unit\":\"stopnie\",\"aliases\":[\"kąt\"]}}},{\"name\":\"start_measurement\",\"description\":\"Rozpocznij ADS1263 z kanałami wybranymi w GUI.\",\"aliases\":[\"rozpocznij pomiar\"],\"arguments\":{}},{\"name\":\"stop_measurement\",\"description\":\"Zatrzymaj ADS1263; dane pozostają w buforze.\",\"aliases\":[\"zatrzymaj pomiar\"],\"arguments\":{}},{\"name\":\"wait\",\"description\":\"Poczekaj podaną liczbę sekund; nie jest to detekcja stabilizacji.\",\"aliases\":[\"poczekaj\",\"odczekaj\"],\"arguments\":{\"seconds\":{\"type\":[\"number\",\"null\"],\"description\":\"Czas oczekiwania\",\"minimum\":0,\"maximum\":3600,\"required\":true,\"explicit_value\":true,\"unit\":\"s\",\"aliases\":[\"sekundy\"]}}}]\nPrzykłady kroków (dodaj description oraz pola planu): [{\"input\":\"Ustaw piezo na 20 V.\",\"steps\":[{\"action\":\"set_piezo_voltage\",\"args\":{\"value_v\":20}}]},{\"input\":\"Ustaw piezo.\",\"steps\":[{\"action\":\"set_piezo_voltage\",\"args\":{\"value_v\":null}}]},{\"input\":\"Ustaw drugą łopatkę na 35 stopni.\",\"steps\":[{\"action\":\"set_polarization_angle\",\"args\":{\"paddle\":2,\"angle_deg\":35}}]},{\"input\":\"Ustaw drugą łopatkę.\",\"steps\":[{\"action\":\"set_polarization_angle\",\"args\":{\"paddle\":2,\"angle_deg\":null}}]},{\"input\":\"Ustaw temperaturę na 37 stopni i rozpocznij pomiar.\",\"steps\":[{\"action\":\"set_temperature\",\"args\":{\"value_c\":37}},{\"action\":\"start_measurement\",\"args\":{}}]}]\nAntyprzykłady: [{\"input\":\"Ustaw drugą łopatkę.\",\"bad\":{\"angle_deg\":90},\"why\":\"Użytkownik nie podał kąta.\",\"correct\":{\"angle_deg\":null}},{\"input\":\"Ustaw piezo.\",\"bad\":{\"value_v\":0},\"why\":\"Użytkownik nie podał 0 V.\",\"correct\":{\"value_v\":null}}]",
+  "schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "title",
+      "steps",
+      "missing_parameters",
+      "notes"
+    ],
+    "properties": {
+      "title": {
+        "type": "string"
+      },
+      "steps": {
+        "type": "array",
+        "minItems": 0,
+        "maxItems": 100,
+        "items": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "description",
+                "action",
+                "args"
+              ],
+              "properties": {
+                "description": {
+                  "type": "string"
+                },
+                "action": {
+                  "type": "string",
+                  "const": "set_temperature"
+                },
+                "args": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "value_c"
+                  ],
+                  "properties": {
+                    "value_c": {
+                      "type": [
+                        "number",
+                        "null"
+                      ],
+                      "description": "Temperatura zadana",
+                      "minimum": 20.0,
+                      "maximum": 200.0
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "description",
+                "action",
+                "args"
+              ],
+              "properties": {
+                "description": {
+                  "type": "string"
+                },
+                "action": {
+                  "type": "string",
+                  "const": "set_piezo_voltage"
+                },
+                "args": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "value_v"
+                  ],
+                  "properties": {
+                    "value_v": {
+                      "type": [
+                        "number",
+                        "null"
+                      ],
+                      "description": "Napięcie piezo"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "description",
+                "action",
+                "args"
+              ],
+              "properties": {
+                "description": {
+                  "type": "string"
+                },
+                "action": {
+                  "type": "string",
+                  "const": "set_polarization_angle"
+                },
+                "args": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "paddle",
+                    "angle_deg"
+                  ],
+                  "properties": {
+                    "paddle": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "description": "Numer łopatki",
+                      "enum": [
+                        1,
+                        2,
+                        null
+                      ]
+                    },
+                    "angle_deg": {
+                      "type": [
+                        "number",
+                        "null"
+                      ],
+                      "description": "Kąt łopatki",
+                      "minimum": 1.0,
+                      "maximum": 160.0
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "description",
+                "action",
+                "args"
+              ],
+              "properties": {
+                "description": {
+                  "type": "string"
+                },
+                "action": {
+                  "type": "string",
+                  "const": "start_measurement"
+                },
+                "args": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [],
+                  "properties": {}
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "description",
+                "action",
+                "args"
+              ],
+              "properties": {
+                "description": {
+                  "type": "string"
+                },
+                "action": {
+                  "type": "string",
+                  "const": "stop_measurement"
+                },
+                "args": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [],
+                  "properties": {}
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "description",
+                "action",
+                "args"
+              ],
+              "properties": {
+                "description": {
+                  "type": "string"
+                },
+                "action": {
+                  "type": "string",
+                  "const": "wait"
+                },
+                "args": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "seconds"
+                  ],
+                  "properties": {
+                    "seconds": {
+                      "type": [
+                        "number",
+                        "null"
+                      ],
+                      "description": "Czas oczekiwania",
+                      "minimum": 0,
+                      "maximum": 3600
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "missing_parameters": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "notes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

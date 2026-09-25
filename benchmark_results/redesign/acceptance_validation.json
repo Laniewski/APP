@@ -1,0 +1,14 @@
+{
+  "status": "INVALID",
+  "runnable": false,
+  "errors": [
+    "Krok 3: nieobsługiwana lub nierozpoznana czynność: wlacz grzalke",
+    "Krok 10: nieobsługiwana lub nierozpoznana czynność: wlacz grzalke",
+    "Krok 14: nieobsługiwana lub nierozpoznana czynność: zapisz plik"
+  ],
+  "missing_parameters": [
+    "Krok 5: Podaj kąt pierwszej łopatki.",
+    "Krok 11: Podaj kąt pierwszej łopatki.",
+    "Krok 12: Podaj kąt drugiej łopatki."
+  ]
+}

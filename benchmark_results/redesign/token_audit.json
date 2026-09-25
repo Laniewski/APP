@@ -1,0 +1,26 @@
+{
+  "old_total": {
+    "characters": 3911,
+    "tokens": 1132
+  },
+  "old_rules": {
+    "characters": 1142,
+    "tokens": 312
+  },
+  "old_tools": {
+    "characters": 1865,
+    "tokens": 534
+  },
+  "old_examples": {
+    "characters": 641,
+    "tokens": 194
+  },
+  "old_anti_examples": {
+    "characters": 229,
+    "tokens": 76
+  },
+  "new_total": {
+    "characters": 1504,
+    "tokens": 448
+  }
+}
