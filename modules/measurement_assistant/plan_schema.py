@@ -13,8 +13,18 @@ class ValidationResult:
     missing_parameters: tuple[str, ...]
 
     @property
+    def structurally_valid(self):
+        return not self.errors
+
+    @property
+    def status(self):
+        if self.errors:
+            return "INVALID"
+        return "INCOMPLETE" if self.missing_parameters else "COMPLETE"
+
+    @property
     def runnable(self):
-        return not self.errors and not self.missing_parameters
+        return self.status == "COMPLETE"
 
 
 def parse_response(text):
@@ -37,6 +47,7 @@ def parse_response(text):
 class PlanValidator:
     def validate(self, plan, request=None):
         errors = []
+        derived_missing = []
         if not isinstance(plan, dict):
             return ValidationResult(("Plan musi być obiektem.",), ())
         expected = {"title", "steps", "missing_parameters", "notes"}
@@ -48,9 +59,11 @@ class PlanValidator:
             if not isinstance(plan.get(name), list) or not all(isinstance(item, str) for item in plan.get(name, [])):
                 errors.append(f"{name} musi być listą tekstów.")
         steps = plan.get("steps")
-        if not isinstance(steps, list) or not 1 <= len(steps) <= 100:
-            errors.append("Plan musi zawierać od 1 do 100 kroków.")
+        if not isinstance(steps, list) or not 0 <= len(steps) <= 100:
+            errors.append("Plan musi zawierać od 0 do 100 kroków.")
             steps = []
+        if isinstance(plan.get("steps"), list) and not steps:
+            derived_missing.append("Podaj co najmniej jedną obsługiwaną akcję.")
         for number, step in enumerate(steps, 1):
             if not isinstance(step, dict) or set(step) != {"description", "action", "args"}:
                 errors.append(f"Krok {number}: nieprawidłowe pola.")
@@ -63,11 +76,20 @@ class PlanValidator:
                 errors.append(f"Krok {number}: nieznana akcja {name!r}.")
                 continue
             args = step["args"]
-            if not isinstance(args, dict) or set(args) != set(spec.arguments):
-                errors.append(f"Krok {number}: wymagane argumenty: {list(spec.arguments)}; nie wolno dodawać innych.")
+            required = {key for key, arg in spec.arguments.items() if arg.required}
+            if not isinstance(args, dict) or not required <= set(args) or not set(args) <= set(spec.arguments):
+                errors.append(f"Krok {number}: wymagane argumenty: {sorted(required)}; nie wolno dodawać innych.")
                 continue
             for key, arg_spec in spec.arguments.items():
+                if key not in args:
+                    continue
                 value = args[key]
+                if value is None:
+                    if not arg_spec.nullable:
+                        errors.append(f"Krok {number}: {key} nie dopuszcza null.")
+                    elif arg_spec.required:
+                        derived_missing.append(f"Krok {number}: {spec.missing_question(key, args)}")
+                    continue
                 numeric = isinstance(value, (int, float)) and not isinstance(value, bool)
                 try:
                     finite = numeric and math.isfinite(value)
@@ -80,7 +102,7 @@ class PlanValidator:
                       or arg_spec.choices and value not in arg_spec.choices):
                     errors.append(f"Krok {number}: {key} poza dozwolonym zakresem.")
         missing = plan.get("missing_parameters", [])
-        missing = list(missing) if isinstance(missing, list) and all(isinstance(x, str) for x in missing) else []
+        missing = derived_missing + (list(missing) if isinstance(missing, list) and all(isinstance(x, str) for x in missing) else [])
         if requires_unsupported_stabilization(request):
             missing.append(STABILIZATION_MISSING)
         return ValidationResult(tuple(errors), tuple(dict.fromkeys(missing)))
@@ -110,7 +132,7 @@ def response_schema():
                 "description": {"type": "string"},
                 "action": {"type": "string", "const": spec.name},
                 "args": {"type": "object", "additionalProperties": False,
-                         "required": list(spec.arguments),
+                         "required": [key for key, arg in spec.arguments.items() if arg.required],
                          "properties": {key: arg.schema() for key, arg in spec.arguments.items()}},
             },
         })
@@ -119,7 +141,7 @@ def response_schema():
         "required": ["title", "steps", "missing_parameters", "notes"],
         "properties": {
             "title": {"type": "string"},
-            "steps": {"type": "array", "minItems": 1, "maxItems": 100,
+            "steps": {"type": "array", "minItems": 0, "maxItems": 100,
                       "items": {"oneOf": variants}},
             "missing_parameters": {"type": "array", "items": {"type": "string"}},
             "notes": {"type": "array", "items": {"type": "string"}},

@@ -2,14 +2,17 @@
 
 Panel po prawej otwiera przycisk `AI ›`. Domyślnie jest ukryty.
 Model ładuje się dopiero po „Utwórz plan”. Generowanie nie wykonuje pomiaru.
-Użytkownik musi przeczytać plan, ręcznie połączyć potrzebne urządzenia i nacisnąć Start.
+Domyślnie wykonanie AI jest wyłączone i Start jest nieaktywny. Dopiero po
+jawnym włączeniu wykonania użytkownik sprawdza plan, ręcznie łączy potrzebne
+urządzenia i naciska Start.
 
 ## Przepływ
 
 ```text
 Użytkownik → GUI → MeasurementAssistantController → LLMBackend
 → lokalny llama-server → JSON → PlanValidator → ScriptBuilder
-→ runs/<czas>/script.py → Runner (QThread) → MeasurementActions
+→ runs/<czas>/ (JSON, metryki, log)
+→ tylko przy execution enabled: script.py → Runner (QThread) → MeasurementActions
 → queued signals → istniejące controllery APP v2 → ich workery → sprzęt
 ```
 
@@ -74,7 +77,7 @@ Aplikacja z terminala z dostępem do graficznej sesji Raspberry Pi:
 
 ```bash
 cd /home/malina/APPv2
-.venv/bin/python main.py
+APP_AI_EXECUTION_ENABLED=0 .venv/bin/python main.py
 ```
 
 Ręczny serwer (opcjonalny; asystent uruchamia go automatycznie):
@@ -86,7 +89,7 @@ Ręczny serwer (opcjonalny; asystent uruchamia go automatycznie):
 Backend łączy się wyłącznie z `127.0.0.1`, bez usług chmurowych i proxy.
 Nie zmieniaj hosta ręcznego serwera na `0.0.0.0`.
 Zmienne: `APP_AI_BINARY`, `APP_AI_MODEL`, `APP_AI_PORT`, `APP_AI_CONTEXT`,
-`APP_AI_THREADS`, `APP_AI_TIMEOUT`. Domyślnie: port 8080, kontekst 2048,
+`APP_AI_THREADS`, `APP_AI_TIMEOUT`, `APP_AI_EXECUTION_ENABLED`, `APP_AI_SCHEMA_FORMAT`. Domyślnie: port 8080, kontekst 2048,
 3 wątki, timeout 120 s; batch 256, microbatch 128 ograniczają szczyt pamięci.
 Cache RAM promptów jest wyłączony (`--cache-ram 0`), zamiast domyślnego limitu
 8192 MiB tej wersji llama.cpp. Host nie jest konfigurowalny.
@@ -94,8 +97,9 @@ Shutdown zatrzymuje tylko serwer uruchomiony przez ten backend, nie ręczny serw
 
 ## Historia, bezpieczeństwo i Stop
 
-`runs/YYYY-MM-DD_HH-MM-SS/` zawiera `request.txt`, `plan.json`, `script.py`
-i `run.log`. Przy kolizji czasu powstaje sufiks. Plan z brakami ma zapisany JSON,
+`runs/YYYY-MM-DD_HH-MM-SS/` zawiera `request.txt`, `plan.json`,
+`llm_response.json`, `metrics.json` i `run.log`. `script.py` powstaje tylko
+przy włączonym execution i poprawnym, kompletnym planie. Przy kolizji czasu powstaje sufiks. Plan z brakami ma zapisany JSON,
 ale nie skrypt. Dodatkowy `llm_response.json` zachowuje oryginalną odpowiedź
 przed normalizacją (nigdy nie jest źródłem kodu Runnera). `runs/` jest ignorowane
 przez Git. Późniejszy eksport z GUI można
@@ -175,3 +179,68 @@ generacji. Plan po normalizacji zawiera tylko nastawę temperatury, nastawę pie
 i start ADS; zawiera brakujące kryteria, Start jest zablokowany i brak `script.py`.
 Oryginalny błędny `wait` jest zachowany wyłącznie w odpowiedzi diagnostycznej.
 Serwer po benchmarku został zamknięty; start aplikacji nadal nie ładuje modelu.
+
+
+## Tryb testowania planowania (domyślny)
+
+`APP_AI_EXECUTION_ENABLED` domyślnie wynosi `0` (false). Wartości `1` i `true`
+włączają wykonanie; `0` i `false` je wyłączają. Inne wartości powodują błąd
+konfiguracji. Opcja jest odczytywana przy tworzeniu kontrolera, a zmiana wymaga
+ponownego uruchomienia aplikacji. Blokady znajdują się w panelu, kontrolerze,
+workerze wykonania, Runnerze oraz MeasurementActions (przed emisją komendy
+oraz przed dispatch do urządzeń). Anulowanie w tym trybie nie steruje sprzętem.
+
+```bash
+APP_AI_EXECUTION_ENABLED=0 .venv/bin/python main.py
+```
+
+Rozwiń panel AI, wpisz polecenie lub wybierz przykład i kliknij „Utwórz plan”.
+Przykłady tylko wstawiają tekst. Model ładuje się dopiero po żądaniu planu.
+Panel pokazuje kroki, missing_parameters, konkretne błędy walidacji, status planu
+oraz czas generowania, completion tokens i tokens/s. „Kopiuj JSON” kopiuje
+oryginalną odpowiedź modelu (także niepoprawny JSON), a przy jej braku plan.json.
+Przycisk „Rozpocznij” pozostaje wyłączony nawet dla kompletnego planu.
+
+Późniejsze świadome włączenie wykonania:
+
+```bash
+APP_AI_EXECUTION_ENABLED=1 .venv/bin/python main.py
+```
+
+Wtedy dopiero kompletny, poprawny plan otrzymuje skrypt i umożliwia ręczny Start.
+Zachowano ACTION_REGISTRY, PlanValidator, deterministyczny ScriptBuilder,
+weryfikację skryptu Runnera i istniejące API kontrolerów.
+
+Generowanie używa `temperature=0.0`, `max_tokens=400`, kontekstu 2048 (konfiguracja
+nie dopuszcza większego), 3 wątków domyślnie i `--parallel 1`. Lokalny kod
+llama.cpp b04d4e5 w `tools/server/server-common.cpp` obsługuje
+`response_format: {type: json_object, schema: ...}`, więc to format domyślny.
+Dla starszego binarnego serwera można ustawić `APP_AI_SCHEMA_FORMAT=legacy`,
+co zachowuje wcześniejsze `response_format: {type: json_object}` i osobne
+`json_schema`. Obie drogi kończą się ścisłym parse_response i niezależną walidacją.
+
+Wyniki są w katalogu `runs/` w głównym katalogu repozytorium (domyślnie
+`/home/malina/APPv2/runs/`), ignorowanym przez Git. Błędna odpowiedź JSON ma
+`plan.json` z wartością null oraz oryginalny tekst w `llm_response.json`.
+Metryki obejmują elapsed_s (generowanie z ewentualną pojedynczą próbą naprawy,
+bez ładowania modelu), completion_tokens, tokens_per_s, valid, runnable,
+missing_parameters_count i validation_errors. `runnable` opisuje kompletność
+planu, niezależnie od uprawnienia execution. Nieznane metryki mają wartość null. Katalog żądania powstaje przed
+generowaniem; przerwanie aplikacji pozostawia ślad z planem null i informacją
+„Generowanie nieukończone lub przerwane”, zamiast tracić request.txt.
+Prędkość pochodzi z timings serwera, a przy ich braku z tokenów/czasu żądania.
+
+Log procesu uruchomionego przez APP:
+
+```bash
+tail -n 100 ~/.local/share/app-v2/models/llama-server.log
+```
+
+Przy `APP_AI_MODEL` log znajduje się w katalogu wskazanego modelu. Zewnętrzny
+serwer prowadzi własny log; aplikacja nie zarządza jego procesem.
+
+Weryfikacja bez sprzętu i bez uruchamiania modelu:
+
+```bash
+QT_QPA_PLATFORM=offscreen .venv/bin/python -m unittest tests_x.test_measurement_assistant tests_x.test_imports_and_gui -q
+```

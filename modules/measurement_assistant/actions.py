@@ -7,6 +7,8 @@ from dataclasses import dataclass, field
 
 from PySide6.QtCore import QObject, Qt, Signal, Slot, QThread
 
+from .config import AssistantConfig
+
 from modules.tc200.driver import TC200Driver
 from modules.mpc220.calibration import MPC_MIN_ANGLE_DEG, MPC_MAX_ANGLE_DEG
 
@@ -20,15 +22,35 @@ class ArgumentSpec:
     minimum: float | None = None
     maximum: float | None = None
     choices: tuple = ()
+    required: bool = True
+    nullable: bool = True
+    unit: str | None = None
+    aliases: tuple[str, ...] = ()
+    choice_aliases: dict = field(default_factory=dict)
+    explicit_value: bool = True
+    question: str = "Podaj wartość parametru."
+    question_variants: dict = field(default_factory=dict)
 
     def schema(self):
-        result = {"type": self.kind, "description": self.description}
+        result = {"type": [self.kind, "null"] if self.nullable else self.kind,
+                  "description": self.description}
         if self.minimum is not None:
             result["minimum"] = self.minimum
         if self.maximum is not None:
             result["maximum"] = self.maximum
         if self.choices:
-            result["enum"] = list(self.choices)
+            result["enum"] = list(self.choices) + ([None] if self.nullable else [])
+        return result
+
+    def tool_definition(self):
+        result = self.schema()
+        result.update(required=self.required, explicit_value=self.explicit_value)
+        if self.unit:
+            result["unit"] = self.unit
+        if self.aliases:
+            result["aliases"] = list(self.aliases)
+        if self.choice_aliases:
+            result["choice_aliases"] = self.choice_aliases
         return result
 
 
@@ -37,28 +59,52 @@ class ActionSpec:
     name: str
     description: str
     arguments: dict[str, ArgumentSpec] = field(default_factory=dict)
+    aliases: tuple[str, ...] = ()
+
+    def tool_definition(self):
+        return {"name": self.name, "description": self.description,
+                "aliases": list(self.aliases),
+                "arguments": {key: arg.tool_definition() for key, arg in self.arguments.items()}}
+
+    def missing_question(self, key, args):
+        argument = self.arguments[key]
+        for selector, questions in argument.question_variants.items():
+            try:
+                question = questions.get(args.get(selector))
+            except TypeError:
+                question = None
+            if question:
+                return question
+        return argument.question
 
 
 ACTION_REGISTRY = {
     spec.name: spec for spec in (
         ActionSpec("set_temperature", "Ustaw temperaturę zadaną TC200; nie włącza grzałki ani nie czeka na stabilizację.", {
-            "value_c": ArgumentSpec("number", "Temperatura zadana w °C", TC200Driver.MIN_TEMPERATURE, TC200Driver.MAX_TEMPERATURE),
-        }),
+            "value_c": ArgumentSpec("number", "Temperatura zadana", TC200Driver.MIN_TEMPERATURE, TC200Driver.MAX_TEMPERATURE,
+                                    unit="°C", aliases=("temperatura",), question="Podaj temperaturę zadaną."),
+        }, aliases=("temperatura", "temperatura zadana")),
         ActionSpec("set_piezo_voltage", "Ustaw napięcie piezo MDT694B; zakres sprawdza istniejący sterownik.", {
-            "value_v": ArgumentSpec("number", "Napięcie w V"),
-        }),
+            "value_v": ArgumentSpec("number", "Napięcie piezo", unit="V", aliases=("napięcie",),
+                                    question="Podaj napięcie piezo."),
+        }, aliases=("piezo", "płytka piezo", "napięcie piezo", "kontroler piezo")),
         ActionSpec("set_polarization_angle", "Ustaw kąt jednej łopatki MPC220 i poczekaj na zakończenie ruchu.", {
-            "paddle": ArgumentSpec("integer", "Numer łopatki", choices=(1, 2)),
-            "angle_deg": ArgumentSpec("number", "Kąt w stopniach", MPC_MIN_ANGLE_DEG, MPC_MAX_ANGLE_DEG),
-        }),
-        ActionSpec("start_measurement", "Rozpocznij ADS1263 z kanałami wybranymi w GUI."),
-        ActionSpec("stop_measurement", "Zatrzymaj ADS1263; dane pozostają w buforze."),
+            "paddle": ArgumentSpec("integer", "Numer łopatki", choices=(1, 2),
+                                   choice_aliases={1: ("pierwsza", "pierwszy"), 2: ("druga", "drugi")},
+                                   question="Podaj numer łopatki."),
+            "angle_deg": ArgumentSpec("number", "Kąt łopatki", MPC_MIN_ANGLE_DEG, MPC_MAX_ANGLE_DEG,
+                                      unit="stopnie", aliases=("kąt",), question="Podaj kąt łopatki.",
+                                      question_variants={"paddle": {1: "Podaj kąt pierwszej łopatki.",
+                                                                   2: "Podaj kąt drugiej łopatki."}}),
+        }, aliases=("łopatka", "łopatka polaryzacji", "nastawnik polaryzacji", "polaryzacja")),
+        ActionSpec("start_measurement", "Rozpocznij ADS1263 z kanałami wybranymi w GUI.", aliases=("rozpocznij pomiar",)),
+        ActionSpec("stop_measurement", "Zatrzymaj ADS1263; dane pozostają w buforze.", aliases=("zatrzymaj pomiar",)),
         ActionSpec("wait", "Poczekaj podaną liczbę sekund; nie jest to detekcja stabilizacji.", {
-            "seconds": ArgumentSpec("number", "Jawnie podany czas oczekiwania", 0, 3600),
-        }),
+            "seconds": ArgumentSpec("number", "Czas oczekiwania", 0, 3600, unit="s", aliases=("sekundy",),
+                                    question="Podaj czas oczekiwania w sekundach."),
+        }, aliases=("poczekaj", "odczekaj")),
     )
 }
-
 
 class ActionStopped(RuntimeError):
     pass
@@ -77,8 +123,10 @@ class MeasurementActions(QObject):
     cancel_requested = Signal()
     step_started = Signal(str)
 
-    def __init__(self, tc200, mdt694b, mpc220, measurement, parent=None):
+    def __init__(self, tc200, mdt694b, mpc220, measurement, parent=None, *, execution_enabled=None):
         super().__init__(parent)
+        self.execution_enabled = (AssistantConfig.from_env().execution_enabled
+                                  if execution_enabled is None else execution_enabled)
         self.tc200, self.mdt694b = tc200, mdt694b
         self.mpc220, self.measurement = mpc220, measurement
         self.stop_event = threading.Event()
@@ -98,6 +146,8 @@ class MeasurementActions(QObject):
         self.stop_event = stop_event
 
     def _invoke(self, name, **args):
+        if not self.execution_enabled:
+            raise RuntimeError("Tryb wykonania AI jest wyłączony.")
         if QThread.currentThread() == self.thread():
             raise RuntimeError("Akcje blokujące wolno wykonywać tylko w workerze runnera.")
         if self.stop_event.is_set():
@@ -140,6 +190,10 @@ class MeasurementActions(QObject):
 
     @Slot(object)
     def _dispatch(self, request):
+        if not self.execution_enabled:
+            request.error = "Tryb wykonania AI jest wyłączony."
+            request.done.set()
+            return
         if self.stop_event.is_set():
             request.error = "Procedura zatrzymana."
             request.done.set()
@@ -224,5 +278,5 @@ class MeasurementActions(QObject):
     @Slot()
     def _cancel_devices(self):
         self._finish("Procedura zatrzymana.")
-        if self._owns_measurement:
+        if self.execution_enabled and self._owns_measurement:
             self.measurement.stop_measurement()

@@ -1,7 +1,7 @@
 """Panel GUI kontrolera piezo MDT694B."""
 
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QComboBox, QDoubleSpinBox, QGridLayout, QGroupBox, QLabel, QPushButton
+from PySide6.QtWidgets import QComboBox, QDoubleSpinBox, QGridLayout, QHBoxLayout, QGroupBox, QLabel, QPushButton, QSizePolicy
 
 
 class MDT694BPanel(QGroupBox):
@@ -14,7 +14,9 @@ class MDT694BPanel(QGroupBox):
 
     def __init__(self) -> None:
         super().__init__("MDT694B — sterownik piezo")
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
         layout = QGridLayout(self)
+        layout.setColumnStretch(1, 1)
         self.mdt_port_label = QLabel("Port:")
         self.mdt_port_combo = QComboBox()
         self.mdt_refresh_ports_button = QPushButton("Odśwież")
@@ -36,24 +38,31 @@ class MDT694BPanel(QGroupBox):
         self.mdt_stop_ramp_button = QPushButton("Zatrzymaj rampę")
         self.mdt_ramp_status_label = QLabel("Rampa nieaktywna")
         self.mdt_status_label = QLabel("Rozłączono")
+        self.mdt_port_combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        self.mdt_port_combo.setMinimumContentsLength(10)
+        self.mdt_status_label.setWordWrap(True)
+        self.mdt_ramp_status_label.setWordWrap(True)
         layout.addWidget(self.mdt_port_label, 0, 0)
         layout.addWidget(self.mdt_port_combo, 0, 1)
-        layout.addWidget(self.mdt_refresh_ports_button, 0, 2)
-        layout.addWidget(self.mdt_connect_button, 0, 3)
-        layout.addWidget(self.mdt_disconnect_button, 0, 4)
-        layout.addWidget(QLabel("Napięcie aktualne:"), 1, 0)
-        layout.addWidget(self.mdt_actual_voltage_label, 1, 1, 1, 4)
-        layout.addWidget(QLabel("Napięcie zadane:"), 2, 0)
-        layout.addWidget(self.mdt_voltage_input, 2, 1, 1, 2)
-        layout.addWidget(self.mdt_set_button, 2, 3, 1, 2)
-        layout.addWidget(QLabel("Prędkość rampy:"), 3, 0)
-        layout.addWidget(self.mdt_ramp_rate_input, 3, 1, 1, 2)
-        layout.addWidget(self.mdt_start_ramp_button, 3, 3)
-        layout.addWidget(self.mdt_stop_ramp_button, 3, 4)
-        layout.addWidget(QLabel("Rampa:"), 4, 0)
-        layout.addWidget(self.mdt_ramp_status_label, 4, 1, 1, 4)
-        layout.addWidget(QLabel("Status:"), 5, 0)
-        layout.addWidget(self.mdt_status_label, 5, 1, 1, 4)
+        connection_buttons = QHBoxLayout()
+        for button in (self.mdt_refresh_ports_button, self.mdt_connect_button, self.mdt_disconnect_button):
+            connection_buttons.addWidget(button)
+        layout.addLayout(connection_buttons, 1, 0, 1, 2)
+        layout.addWidget(QLabel("Napięcie aktualne:"), 2, 0)
+        layout.addWidget(self.mdt_actual_voltage_label, 2, 1)
+        layout.addWidget(QLabel("Napięcie zadane:"), 3, 0)
+        layout.addWidget(self.mdt_voltage_input, 3, 1)
+        layout.addWidget(self.mdt_set_button, 4, 0, 1, 2)
+        layout.addWidget(QLabel("Prędkość rampy:"), 5, 0)
+        layout.addWidget(self.mdt_ramp_rate_input, 5, 1)
+        ramp_buttons = QHBoxLayout()
+        ramp_buttons.addWidget(self.mdt_start_ramp_button)
+        ramp_buttons.addWidget(self.mdt_stop_ramp_button)
+        layout.addLayout(ramp_buttons, 6, 0, 1, 2)
+        layout.addWidget(QLabel("Rampa:"), 7, 0)
+        layout.addWidget(self.mdt_ramp_status_label, 7, 1)
+        layout.addWidget(QLabel("Status:"), 8, 0)
+        layout.addWidget(self.mdt_status_label, 8, 1)
         self.mdt_refresh_ports_button.clicked.connect(self.refresh_requested)
         self.mdt_connect_button.clicked.connect(self._request_connect)
         self.mdt_disconnect_button.clicked.connect(self.disconnect_requested)

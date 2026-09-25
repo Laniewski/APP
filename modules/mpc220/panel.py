@@ -5,7 +5,7 @@ from functools import partial
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (QComboBox, QDoubleSpinBox, QGridLayout,
                                QGroupBox, QHBoxLayout, QLabel, QPushButton,
-                               QVBoxLayout)
+                               QVBoxLayout, QSizePolicy)
 
 
 class MPC220Panel(QGroupBox):
@@ -19,6 +19,7 @@ class MPC220Panel(QGroupBox):
 
     def __init__(self) -> None:
         super().__init__("MPC220 — kontroler polaryzacji")
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
         layout = QVBoxLayout(self)
         ports = QHBoxLayout()
         self.port_combo = QComboBox()
@@ -27,10 +28,14 @@ class MPC220Panel(QGroupBox):
         self.disconnect_button = QPushButton("Rozłącz")
         ports.addWidget(QLabel("Port:"))
         ports.addWidget(self.port_combo, 1)
-        ports.addWidget(self.refresh_button)
-        ports.addWidget(self.connect_button)
-        ports.addWidget(self.disconnect_button)
+        self.port_combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        self.port_combo.setMinimumContentsLength(10)
         layout.addLayout(ports)
+        connection_buttons = QHBoxLayout()
+        connection_buttons.addWidget(self.refresh_button)
+        connection_buttons.addWidget(self.connect_button)
+        connection_buttons.addWidget(self.disconnect_button)
+        layout.addLayout(connection_buttons)
         self.optimization_button = QPushButton("Automatyczna optymalizacja")
         self.optimization_status = QLabel("")
         self.optimization_status.setWordWrap(True)
@@ -58,11 +63,11 @@ class MPC220Panel(QGroupBox):
         target.setDecimals(0)
         target.setSuffix("°")
         set_button = QPushButton("Ustaw")
-        steps = QHBoxLayout()
-        for delta in (-10, -5, -1, 1, 5, 10):
+        steps = QGridLayout()
+        for index, delta in enumerate((-10, -5, -1, 1, 5, 10)):
             button = QPushButton(f"{delta:+d}°")
             button.clicked.connect(partial(self.adjust_angle_requested.emit, paddle, float(delta)))
-            steps.addWidget(button)
+            steps.addWidget(button, index // 3, index % 3)
             self._movement_widgets.append(button)
         set_button.clicked.connect(
             lambda _checked=False, p=paddle, field=target:
@@ -70,12 +75,12 @@ class MPC220Panel(QGroupBox):
         )
         setattr(self, f"position_{paddle}", position)
         setattr(self, f"target_{paddle}", target)
-        layout.addLayout(steps, 0, 0, 1, 3)
+        layout.addLayout(steps, 0, 0, 1, 2)
         layout.addWidget(QLabel("Aktualna pozycja:"), 1, 0)
-        layout.addWidget(position, 1, 1, 1, 2)
+        layout.addWidget(position, 1, 1)
         layout.addWidget(QLabel("Pozycja docelowa:"), 2, 0)
         layout.addWidget(target, 2, 1)
-        layout.addWidget(set_button, 2, 2)
+        layout.addWidget(set_button, 3, 0, 1, 2)
         self._movement_widgets.extend((target, set_button))
         return group
 

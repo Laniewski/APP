@@ -7,6 +7,7 @@ import threading
 from pathlib import Path
 
 from .actions import ActionStopped
+from .config import AssistantConfig
 from .script_builder import ScriptBuilder
 
 logger = logging.getLogger(__name__)
@@ -26,7 +27,12 @@ class _VerifiedLoader(importlib.abc.SourceLoader):
 
 
 class Runner:
+    def __init__(self, config=None):
+        self.config = config or AssistantConfig.from_env()
+
     def run(self, script_path, plan, actions, stop_event=None):
+        if not self.config.execution_enabled or not getattr(actions, "execution_enabled", True):
+            raise RuntimeError("Tryb wykonania AI jest wyłączony.")
         stop_event = stop_event or threading.Event()
         path = Path(script_path)
         expected = ScriptBuilder().build(plan).encode("utf-8")

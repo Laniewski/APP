@@ -5,9 +5,11 @@ from PySide6.QtWidgets import (
     QComboBox,
     QDoubleSpinBox,
     QGridLayout,
+    QHBoxLayout,
     QGroupBox,
     QLabel,
     QPushButton,
+    QSizePolicy,
 )
 
 
@@ -20,7 +22,9 @@ class TC200Panel(QGroupBox):
 
     def __init__(self) -> None:
         super().__init__("TC200 — kontroler temperatury")
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
         layout = QGridLayout(self)
+        layout.setColumnStretch(1, 1)
         self.port_combo = QComboBox()
         self.refresh_button = QPushButton("Odśwież")
         self.connect_button = QPushButton("Połącz")
@@ -41,22 +45,27 @@ class TC200Panel(QGroupBox):
         self._connected = False
         self._optimization_locked = False
 
+        self.port_combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        self.port_combo.setMinimumContentsLength(10)
+        self.device_details.setWordWrap(True)
+        self.status_label.setWordWrap(True)
         layout.addWidget(QLabel("Port:"), 0, 0)
         layout.addWidget(self.port_combo, 0, 1)
-        layout.addWidget(self.refresh_button, 0, 2)
-        layout.addWidget(self.connect_button, 0, 3)
-        layout.addWidget(self.disconnect_button, 0, 4)
-        layout.addWidget(QLabel("Połączenie:"), 1, 0)
-        layout.addWidget(self.status_label, 1, 1, 1, 4)
-        layout.addWidget(QLabel("Temperatura aktualna:"), 2, 0)
-        layout.addWidget(self.current_label, 2, 1)
-        layout.addWidget(QLabel("Temperatura zadana:"), 3, 0)
-        layout.addWidget(self.setpoint_label, 3, 1)
-        layout.addWidget(self.temperature_input, 3, 2)
-        layout.addWidget(self.set_button, 3, 3, 1, 2)
-        layout.addWidget(self.heater_button, 4, 0, 1, 5)
-        layout.addWidget(self.device_details, 5, 0, 1, 5)
-        layout.addWidget(self.alarm_label, 6, 0, 1, 5)
+        connection_buttons = QHBoxLayout()
+        for button in (self.refresh_button, self.connect_button, self.disconnect_button):
+            connection_buttons.addWidget(button)
+        layout.addLayout(connection_buttons, 1, 0, 1, 2)
+        layout.addWidget(QLabel("Połączenie:"), 2, 0)
+        layout.addWidget(self.status_label, 2, 1)
+        layout.addWidget(QLabel("Temperatura aktualna:"), 3, 0)
+        layout.addWidget(self.current_label, 3, 1)
+        layout.addWidget(QLabel("Temperatura zadana:"), 4, 0)
+        layout.addWidget(self.setpoint_label, 4, 1)
+        layout.addWidget(self.temperature_input, 5, 0)
+        layout.addWidget(self.set_button, 5, 1)
+        layout.addWidget(self.heater_button, 6, 0, 1, 2)
+        layout.addWidget(self.device_details, 7, 0, 1, 2)
+        layout.addWidget(self.alarm_label, 8, 0, 1, 2)
 
         self.refresh_button.clicked.connect(self.refresh_requested)
         self.connect_button.clicked.connect(self._request_connect)

@@ -6,7 +6,8 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QFileDialog,
     QGroupBox,
-    QHBoxLayout,
+    QGridLayout,
+    QSizePolicy,
     QPushButton,
     QVBoxLayout,
     QWidget,
@@ -14,17 +15,21 @@ from PySide6.QtWidgets import (
 
 from app.measurement.channels import MEASUREMENT_CHANNELS
 from app.widgets.log_panel import LogPanel
+from app.widgets.flow_layout import FlowLayout
 
 
 class MeasurementPanel(QWidget):
     def __init__(self) -> None:
         super().__init__()
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         layout = QVBoxLayout(self)
 
         self.ads1263_panel = QGroupBox("ADS1263")
         ads_layout = QVBoxLayout(self.ads1263_panel)
 
+        self.ads1263_panel.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.plot_widget = pg.PlotWidget()
+        self.plot_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.plot_widget._dark_background = "#0b0f14"
         self.plot_widget.setBackground(self.plot_widget._dark_background)
         self.plot_widget.setLabel("bottom", "Czas [s]", **{"color": "#dfe7f3"})
@@ -55,15 +60,15 @@ class MeasurementPanel(QWidget):
             pen=pg.mkPen(color="#f59e0b", width=2),
             name="IN1",
         )
-        ads_layout.addWidget(self.plot_widget)
+        ads_layout.addWidget(self.plot_widget, 1)
 
-        layout.addWidget(self.ads1263_panel)
+        layout.addWidget(self.ads1263_panel, 4)
         layout.addWidget(self._create_channel_selection())
         layout.addLayout(self._create_measurement_buttons())
         self.log_panel = LogPanel()
         self.log_output = self.log_panel.log_output
         self.log_clear_button = self.log_panel.log_clear_button
-        layout.addWidget(self.log_panel)
+        layout.addWidget(self.log_panel, 1)
 
         self.plot_widget.getPlotItem().getViewBox().sigRangeChangedManually.connect(self._on_manual_range_changed)
         self._update_auto_button()
@@ -71,7 +76,8 @@ class MeasurementPanel(QWidget):
 
     def _create_channel_selection(self) -> QGroupBox:
         group = QGroupBox("Dane rejestrowane podczas pomiaru")
-        layout = QVBoxLayout(group)
+        group.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
+        layout = FlowLayout(group)
         self.measurement_channel_checkboxes = {}
         for channel in MEASUREMENT_CHANNELS:
             checkbox = QCheckBox(f"{channel.label} [{channel.unit}]")
@@ -87,8 +93,8 @@ class MeasurementPanel(QWidget):
             if self.measurement_channel_checkboxes[channel.key].isChecked()
         ]
 
-    def _create_measurement_buttons(self) -> QHBoxLayout:
-        layout = QHBoxLayout()
+    def _create_measurement_buttons(self) -> QGridLayout:
+        layout = QGridLayout()
 
         self.measurement_start_button = QPushButton("Rozpocznij pomiar")
         self.measurement_stop_button = QPushButton("Zatrzymaj pomiar")
@@ -100,12 +106,13 @@ class MeasurementPanel(QWidget):
         self.plot_clear_button.clicked.connect(self.clear_plot)
         self.auto_view_button.clicked.connect(self._toggle_auto_view)
 
-        layout.addWidget(self.measurement_start_button)
-        layout.addWidget(self.measurement_stop_button)
-        layout.addWidget(self.plot_clear_button)
-        layout.addWidget(self.auto_view_button)
-        layout.addWidget(self.data_save_button)
-        layout.addStretch()
+        layout.addWidget(self.measurement_start_button, 0, 0)
+        layout.addWidget(self.measurement_stop_button, 0, 1)
+        layout.addWidget(self.data_save_button, 2, 0, 1, 2)
+        layout.addWidget(self.plot_clear_button, 1, 0)
+        layout.addWidget(self.auto_view_button, 1, 1)
+        for column in range(2):
+            layout.setColumnStretch(column, 1)
 
         return layout
 

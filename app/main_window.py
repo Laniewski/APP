@@ -8,7 +8,9 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QScrollArea,
     QPushButton,
+    QToolButton,
     QSplitter,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -31,6 +33,7 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(1000, 700)
 
         central_widget = QWidget()
+        central_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.setCentralWidget(central_widget)
 
         main_layout = QVBoxLayout(central_widget)
@@ -38,24 +41,30 @@ class MainWindow(QMainWindow):
         self.main_splitter = QSplitter(Qt.Orientation.Horizontal)
         self.main_splitter.addWidget(self._create_device_column())
         self.main_splitter.addWidget(self._create_measurement_column())
-        self.main_splitter.setSizes([450, 800])
+        self.main_splitter.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.main_splitter.setChildrenCollapsible(False)
+        self.main_splitter.setSizes([400, 800])
         self.main_splitter.setStretchFactor(0, 1)
         self.main_splitter.setStretchFactor(1, 2)
 
         body_layout = QHBoxLayout()
         body_layout.addWidget(self.main_splitter, 1)
-        self.assistant_toggle_button = QPushButton("AI ›")
+        self.assistant_toggle_button = QToolButton()
+        self.assistant_toggle_button.setText("AI ›")
         self.assistant_toggle_button.setToolTip("Rozwiń / zwiń Asystenta pomiaru")
         self.assistant_toggle_button.setCheckable(True)
-        self.assistant_toggle_button.setFixedWidth(50)
-        body_layout.addWidget(self.assistant_toggle_button)
-        main_layout.addLayout(body_layout)
+        self.assistant_toggle_button.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+        body_layout.addWidget(self.assistant_toggle_button, alignment=Qt.AlignmentFlag.AlignTop)
+        main_layout.addLayout(body_layout, 1)
         self.measurement_assistant_panel = MeasurementAssistantPanel()
         self.assistant_dock = QDockWidget("Asystent pomiaru", self)
         self.assistant_dock.setAllowedAreas(Qt.DockWidgetArea.RightDockWidgetArea)
         self.assistant_dock.setFeatures(QDockWidget.DockWidgetFeature.DockWidgetClosable)
+        self.assistant_dock.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
         self.assistant_dock.setWidget(self.measurement_assistant_panel)
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.assistant_dock)
+        self.resizeDocks([self.assistant_dock], [self.measurement_assistant_panel.minimumWidth()],
+                         Qt.Orientation.Horizontal)
         self.assistant_dock.hide()
         self.assistant_toggle_button.toggled.connect(self.assistant_dock.setVisible)
         self.assistant_dock.visibilityChanged.connect(self.assistant_toggle_button.setChecked)
@@ -94,7 +103,9 @@ class MainWindow(QMainWindow):
 
     def _create_device_column(self) -> QWidget:
         content = QWidget()
+        content.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         layout = QVBoxLayout(content)
+        layout.setContentsMargins(6, 6, 6, 6)
 
         self.tc200_panel = TC200Panel()
         layout.addWidget(self.tc200_panel)
@@ -109,7 +120,10 @@ class MainWindow(QMainWindow):
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setWidget(content)
-        scroll.setMinimumWidth(420)
+        # Below this width the device controls would require horizontal scrolling.
+        scroll.setMinimumWidth(content.minimumSizeHint().width() + 2 * scroll.frameWidth()
+                               + scroll.verticalScrollBar().sizeHint().width())
+        scroll.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
         return scroll
 

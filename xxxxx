@@ -1,0 +1,11 @@
+malina@malina:~/.local/share/app-v2/llama.cpp $ ./build/bin/llama-cli \
+> -hf openresearchtools/Qwen3.5-2B-GGUF:Q4_K_M \
+> -p "Odpowiedz jednym krótkim zdaniem po polsku: czym jest interferometr?" \
+> -n 80 \
+> --temp 0
+0.00.004.414 E get_repo_commit: error: HTTPS is not supported. Please rebuild with one of:
+  -DLLAMA_BUILD_BORINGSSL=ON
+  -DLLAMA_BUILD_LIBRESSL=ON
+  -DLLAMA_OPENSSL=ON (default, requires OpenSSL dev files installed)
+error: --model is required
+

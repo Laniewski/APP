@@ -8,7 +8,7 @@ from PySide6.QtCore import QObject, QThread, Qt, Signal, Slot
 
 from .actions import MeasurementActions
 from .backend import LLMBackend
-from .plan_schema import PlanValidator
+from .plan_schema import PlanValidator, ValidationResult
 from .runner import Runner
 from .script_builder import ScriptBuilder
 
@@ -38,7 +38,9 @@ class _AssistantWorker(QObject):
     @Slot(object)
     def execute(self, job):
         try:
-            self.completed.emit(Runner().run(job[0], job[1], self.actions, self.stop_event))
+            if not self.backend.config.execution_enabled:
+                raise RuntimeError("Tryb wykonania AI jest wyłączony.")
+            self.completed.emit(Runner(self.backend.config).run(job[0], job[1], self.actions, self.stop_event))
         except Exception as exc:
             self.error.emit(str(exc))
 
@@ -52,7 +54,9 @@ class MeasurementAssistantController(QObject):
         super().__init__(panel)
         self.panel = panel
         self.backend = backend or LLMBackend()
-        self.actions = MeasurementActions(tc200, mdt694b, mpc220, measurement, self)
+        self.panel.set_execution_enabled(self.backend.config.execution_enabled)
+        self.actions = MeasurementActions(tc200, mdt694b, mpc220, measurement, self,
+                                          execution_enabled=self.backend.config.execution_enabled)
         self.stop_event = threading.Event()
         self._plan, self._directory, self._request = None, None, ""
         self._busy = False
@@ -64,6 +68,7 @@ class MeasurementAssistantController(QObject):
         self.request_generate.connect(self.worker.generate, Qt.ConnectionType.QueuedConnection)
         self.request_execute.connect(self.worker.execute, Qt.ConnectionType.QueuedConnection)
         self.worker.status.connect(panel.status_label.setText)
+        self.worker.status.connect(panel.model_status_label.setText)
         self.worker.generated.connect(self._on_plan)
         self.worker.completed.connect(self._on_completed)
         self.worker.error.connect(self._on_error)
@@ -84,7 +89,18 @@ class MeasurementAssistantController(QObject):
             return
         self._request = text
         self._plan, self._directory = None, None
+        try:
+            self._directory = ScriptBuilder().save(
+                self.backend.config.runs_dir, text, None,
+                validation=ValidationResult(("Generowanie nieukończone lub przerwane.",), ()))
+        except Exception as exc:
+            self._on_error(str(exc))
+            return
         self._busy = True
+        self.panel.copy_button.setEnabled(False)
+        self.panel.plan_view.clear()
+        self.panel.result_label.setText("Test planowania: w toku")
+        self.panel.show_metrics({})
         self.stop_event.clear()
         self.panel.set_busy(True)
         self.request_generate.emit(text)
@@ -94,24 +110,26 @@ class MeasurementAssistantController(QObject):
         if self._closing:
             return
         self._busy = False
-        if self.stop_event.is_set():
-            self.panel.set_busy(False)
-            return
         validation = PlanValidator().validate(plan, self._request)
+        if self.stop_event.is_set():
+            validation = ValidationResult(("Generowanie anulowane.",), validation.missing_parameters)
         if validation.missing_parameters and isinstance(plan.get("missing_parameters"), list):
             plan = copy.deepcopy(plan)
             plan["missing_parameters"] = list(validation.missing_parameters)
-        self.panel.show_plan(plan, validation)
+        self.panel.show_plan(plan, validation, getattr(self.backend, "last_raw_response", None))
+        self.panel.show_metrics(getattr(self.backend, "last_metrics", {}))
         self._plan = copy.deepcopy(plan)
         try:
             self._directory = ScriptBuilder().save(
                 self.backend.config.runs_dir, self._request, plan,
                 llm_response=getattr(self.backend, "last_raw_response", None),
+                metrics=getattr(self.backend, "last_metrics", {}), validation=validation,
+                execution_enabled=self.backend.config.execution_enabled, directory=self._directory,
             )
             logger.info("Zapisano plan w %s", self._directory)
             if validation.errors:
                 logger.warning("Plan odrzucony: %s", validation.errors)
-            if validation.runnable:
+            if validation.runnable and self.backend.config.execution_enabled:
                 logger.info("Zaakceptowano plan; wygenerowano script.py.")
             self.panel.status_label.setText("Plan gotowy — sprawdź kroki przed rozpoczęciem." if validation.runnable else "Plan wymaga uzupełnienia lub korekty.")
             self.panel.set_busy(False, validation.runnable)
@@ -120,6 +138,8 @@ class MeasurementAssistantController(QObject):
 
     @Slot()
     def start(self):
+        if not self.backend.config.execution_enabled:
+            return
         if self._busy or self._directory is None or not PlanValidator().validate(self._plan, self._request).runnable:
             return
         self.stop_event.clear()
@@ -152,6 +172,18 @@ class MeasurementAssistantController(QObject):
 
     @Slot(str)
     def _on_error(self, message):
+        if self._busy and not self._executing and not self._closing:
+            validation = ValidationResult((message,), ())
+            self.panel.show_plan(None, validation, getattr(self.backend, "last_raw_response", None))
+            self.panel.show_metrics(getattr(self.backend, "last_metrics", {}))
+            try:
+                self._directory = ScriptBuilder().save(
+                    self.backend.config.runs_dir, self._request, None,
+                    llm_response=getattr(self.backend, "last_raw_response", None),
+                    metrics=getattr(self.backend, "last_metrics", {}), validation=validation,
+                    directory=self._directory)
+            except Exception:
+                logger.exception("Nie można zapisać odrzuconej odpowiedzi")
         self._busy = self._executing = False
         self.procedure_active_changed.emit(False)
         self.panel.status_label.setText(f"Błąd: {message}")

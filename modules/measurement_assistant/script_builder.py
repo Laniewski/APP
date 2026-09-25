@@ -20,23 +20,37 @@ class ScriptBuilder:
             lines.append(f"    actions.{step['action']}({args})")
         return "\n".join(lines) + "\n"
 
-    def save(self, root, request, plan, llm_response=None):
+    def save(self, root, request, plan, llm_response=None, metrics=None, validation=None, execution_enabled=False, directory=None):
         root = Path(root)
         root.mkdir(parents=True, exist_ok=True)
-        directory = root / datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        suffix = 1
-        while True:
-            try:
-                directory.mkdir()
-                break
-            except FileExistsError:
-                directory = root / f"{datetime.now():%Y-%m-%d_%H-%M-%S}_{suffix:02d}"
-                suffix += 1
+        if directory is None:
+            directory = root / datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            suffix = 1
+            while True:
+                try:
+                    directory.mkdir()
+                    break
+                except FileExistsError:
+                    directory = root / f"{datetime.now():%Y-%m-%d_%H-%M-%S}_{suffix:02d}"
+                    suffix += 1
+        else:
+            directory = Path(directory)
         (directory / "request.txt").write_text(request, encoding="utf-8")
         (directory / "plan.json").write_text(json.dumps(plan, ensure_ascii=False, indent=2), encoding="utf-8")
-        if llm_response is not None:
-            (directory / "llm_response.json").write_text(llm_response, encoding="utf-8")
-        (directory / "run.log").touch()
-        if PlanValidator().validate(plan).runnable:
+        (directory / "llm_response.json").write_text(
+            llm_response if isinstance(llm_response, str) else json.dumps(plan, ensure_ascii=False, indent=2),
+            encoding="utf-8")
+        validation = validation or PlanValidator().validate(plan, request)
+        result_metrics = dict(metrics or {})
+        for key in ("elapsed_s", "completion_tokens", "tokens_per_s"):
+            result_metrics.setdefault(key, None)
+        result_metrics.update(valid=not bool(validation.errors), runnable=validation.runnable,
+                              missing_parameters_count=len(validation.missing_parameters),
+                              validation_errors=list(validation.errors))
+        (directory / "metrics.json").write_text(json.dumps(result_metrics, ensure_ascii=False, indent=2), encoding="utf-8")
+        (directory / "run.log").write_text(
+            f"Planning: valid={result_metrics['valid']} runnable={validation.runnable}\n"
+            + "\n".join(validation.errors), encoding="utf-8")
+        if execution_enabled and validation.runnable:
             (directory / "script.py").write_text(self.build(plan), encoding="utf-8")
         return directory
