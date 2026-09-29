@@ -4,7 +4,7 @@ import json
 import math
 from dataclasses import dataclass
 
-from .actions import ACTION_REGISTRY
+from .action_registry import ACTION_REGISTRY
 
 
 @dataclass(frozen=True)

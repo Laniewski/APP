@@ -1,0 +1,3 @@
+# The PC-only planner, validator and llama.cpp HTTP client use only Python's
+# standard library. Install requirements.txt only when developing the GUI or
+# hardware integration.

@@ -5,9 +5,16 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 
+def app_data_dir():
+    """Per-user data directory without assuming a shell or path separator."""
+    if os.name == "nt":
+        return Path(os.getenv("LOCALAPPDATA", str(Path.home() / "AppData" / "Local"))) / "APPv2"
+    return Path.home() / ".local" / "share" / "app-v2"
+
+
 def default_model():
     """Use the installed 2B model; never download a model implicitly."""
-    local = Path.home() / ".local/share/app-v2/models/Qwen3.5-2B-Q4_K_M.gguf"
+    local = app_data_dir() / "models" / "Qwen3.5-2B-Q4_K_M.gguf"
     if local.is_file():
         return local
     cache = Path.home() / ".cache/huggingface/hub/models--openresearchtools--Qwen3.5-2B-GGUF/snapshots"
@@ -17,7 +24,8 @@ def default_model():
 
 @dataclass(frozen=True)
 class AssistantConfig:
-    binary: Path = Path.home() / ".local/share/app-v2/llama.cpp/build/bin/llama-server"
+    binary: Path = field(default_factory=lambda: app_data_dir() / "llama.cpp" /
+                         ("llama-server.exe" if os.name == "nt" else "build/bin/llama-server"))
     model: Path = field(default_factory=default_model)
     execution_enabled: bool = False
     schema_in_response_format: bool = True

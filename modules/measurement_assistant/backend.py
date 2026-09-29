@@ -28,6 +28,7 @@ class LLMBackend:
         self._cancelled = threading.Event()
         self.last_metrics = {}
         self.last_raw_response = None
+        self.last_model_extraction = []
 
     def _request(self, method, path, payload=None, timeout=None):
         if self._cancelled.is_set():
@@ -109,6 +110,7 @@ class LLMBackend:
 
     def generate(self, request, status=lambda message: None, stop_event=None):
         self.last_raw_response = None
+        self.last_model_extraction = []
         self.last_metrics = {}
         if self._closed.is_set():
             raise RuntimeError("Backend asystenta został zamknięty.")
@@ -169,6 +171,7 @@ class LLMBackend:
                     if response["choices"][0].get("finish_reason") == "length":
                         raise ValueError("Odpowiedź obcięta.")
                     extracted.extend(rows)
+                    self.last_model_extraction = list(extracted)
                     break
                 except (KeyError, IndexError, TypeError, ValueError) as exc:
                     if attempt:

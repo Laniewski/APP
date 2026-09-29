@@ -1,6 +1,6 @@
 """Small extraction contract, with no numerical demonstrations."""
 import json
-from .actions import ACTION_REGISTRY
+from .action_registry import ACTION_REGISTRY
 
 
 def tool_definitions():
