@@ -46,8 +46,10 @@ class PolarizationOptimizerTests(unittest.TestCase):
     def test_button_is_between_port_controls_and_paddle_panels(self):
         panel = MPC220Panel()
         layout = panel.layout()
-        self.assertIs(layout.itemAt(1).widget(), panel.optimization_button)
-        self.assertEqual(layout.itemAt(3).widget().title(), "Łopatka 1")
+        self.assertIsNotNone(layout.itemAt(0).layout())
+        self.assertIsNotNone(layout.itemAt(1).layout())
+        self.assertIs(layout.itemAt(2).widget(), panel.optimization_button)
+        self.assertEqual(layout.itemAt(4).widget().title(), "Łopatka 1")
         self.assertTrue(panel.optimization_button.isEnabled())
         self.assertFalse(panel.optimization_status.isVisible())
 

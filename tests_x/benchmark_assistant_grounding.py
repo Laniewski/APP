@@ -65,6 +65,7 @@ def post(path, payload):
 
 
 def main():
+    raise SystemExit("Benchmark historyczny. Użyj: python tools/test_assistant_model.py")
     parser = argparse.ArgumentParser()
     parser.add_argument('--label', default='', help='Output suffix for a new revision, preserving previous runs')
     parser.add_argument('--cases', help='Comma-separated acceptance ids for a targeted recheck')

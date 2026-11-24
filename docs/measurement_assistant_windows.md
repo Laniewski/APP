@@ -1,6 +1,6 @@
 # Lokalny tester AI na Windows 10/11
 
-Tester uruchamia wyłącznie segmentację, lokalny model, grounding i walidację.
+Tester uruchamia wyłącznie loader plików kontekstu, lokalny model i walidację.
 Nie importuje kontrolerów sprzętu, nie wykrywa USB/serial i nie uruchamia
 `MeasurementActions`, `Runnera` ani wygenerowanych skryptów. Zmienna
 `APP_AI_EXECUTION_ENABLED` musi pozostać równa `0`.
@@ -90,7 +90,7 @@ są dodawane do Git.
 ## 5. Konfiguracja i uruchomienie
 
 Skrypt środowiska wykrywa liczbę logicznych procesorów i ustawia połowę, nie
-więcej niż cztery wątki. Ustawia też ścieżki z `LOCALAPPDATA`, kontekst 2048,
+więcej niż cztery wątki. Ustawia też ścieżki z `LOCALAPPDATA`, kontekst 16384,
 port 8080, schemat `nested` oraz bezwarunkowo wyłącza wykonanie sprzętowe:
 
 ```powershell
@@ -99,17 +99,18 @@ port 8080, schemat `nested` oraz bezwarunkowo wyłącza wykonanie sprzętowe:
 ```
 
 Tester działa w pętli do podania pustej linii. Każdy wynik zapisuje w osobnym
-podkatalogu `local_ai_tests\` jako `request.txt`, `segments.json`,
-`model_extraction.json`, `final_plan.json` i `metrics.json`. Użyj `--no-save`,
+podkatalogu `local_ai_tests\` jako `request.txt`, `plan.json`,
+`llm_response.json`, `metrics.json` i `run.log`. Użyj `--no-save`,
 aby wyłączyć zapis, albo przekaż jedno polecenie bez trybu interaktywnego:
 
 ```powershell
 .\.venv\Scripts\python.exe tools\ai_plan_tester.py "Ustaw piezo na 12 V."
 ```
 
-`COMPLETE` oznacza poprawny i kompletny plan. `INCOMPLETE` oznacza brak jawnego
-argumentu. `INVALID` obejmuje nieobsługiwane czynności oraz naruszenia kontraktu.
-„Włącz grzałkę” i „Zapisz plik” pozostają `unsupported`.
+Odpowiedź ma typ `answer`, `error` lub `procedure`. Poprawna odpowiedź/error
+nie jest wykonywalną procedurą. Grzałka jest obsługiwana, zapis pliku nie.
+Kontekst edytuje się w `ai_context/`, materiały dodaje do `ai_context/data/`.
+`APP_AI_DEBUG_IO=1` włącza zapis dokładnego wejścia i odpowiedzi w `runs/`.
 
 ## 6. Testy i benchmarki
 
@@ -124,11 +125,12 @@ testów sterowników używa atrap portu, ale importuje stos sprzętowy i nie nal
 do minimalnej ścieżki AI. Benchmark modelu także nie wykonuje sprzętu:
 
 ```powershell
-.\.venv\Scripts\python.exe tests_x\benchmark_measurement_assistant_models.py --mode after
+.\.venv\Scripts\python.exe tools\test_assistant_model.py
 ```
 
-Benchmark korzysta z serwera na porcie 18767 zgodnie z jego własną konfiguracją;
-tester interaktywny używa portu z `APP_AI_PORT` i sam uruchamia serwer.
+Tester modelu używa portu `APP_AI_PORT` i uruchamia lokalny serwer, jeżeli
+potrzeba. Wyniki 16 przypadków zapisuje w `runs/model_acceptance.json`.
+Wyniki mocków nie są oceną jakości rozumienia języka.
 
 ## 7. Typowe problemy
 

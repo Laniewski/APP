@@ -1,0 +1,424 @@
+{
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "answer",
+        "steps"
+      ],
+      "properties": {
+        "type": {
+          "const": "answer",
+          "type": "string"
+        },
+        "answer": {
+          "type": "string",
+          "minLength": 1
+        },
+        "steps": {
+          "type": "array",
+          "maxItems": 0,
+          "items": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "message",
+        "steps"
+      ],
+      "properties": {
+        "type": {
+          "const": "error",
+          "type": "string"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "steps": {
+          "type": "array",
+          "maxItems": 0,
+          "items": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "answer",
+        "steps"
+      ],
+      "properties": {
+        "type": {
+          "const": "procedure",
+          "type": "string"
+        },
+        "answer": {
+          "const": "",
+          "type": "string"
+        },
+        "steps": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "action",
+                  "args"
+                ],
+                "properties": {
+                  "action": {
+                    "const": "set_temperature",
+                    "type": "string"
+                  },
+                  "args": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "value_c"
+                    ],
+                    "properties": {
+                      "value_c": {
+                        "type": "number",
+                        "minimum": 20,
+                        "maximum": 200
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "action",
+                  "args"
+                ],
+                "properties": {
+                  "action": {
+                    "const": "heater_on",
+                    "type": "string"
+                  },
+                  "args": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [],
+                    "properties": {}
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "action",
+                  "args"
+                ],
+                "properties": {
+                  "action": {
+                    "const": "heater_off",
+                    "type": "string"
+                  },
+                  "args": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [],
+                    "properties": {}
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "action",
+                  "args"
+                ],
+                "properties": {
+                  "action": {
+                    "const": "set_piezo_voltage",
+                    "type": "string"
+                  },
+                  "args": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "value_v"
+                    ],
+                    "properties": {
+                      "value_v": {
+                        "type": "number"
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "action",
+                  "args"
+                ],
+                "properties": {
+                  "action": {
+                    "const": "set_ramp_speed",
+                    "type": "string"
+                  },
+                  "args": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "ramp_rate_v_per_s"
+                    ],
+                    "properties": {
+                      "ramp_rate_v_per_s": {
+                        "type": "number",
+                        "minimum": 0.01,
+                        "maximum": 1000
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "action",
+                  "args"
+                ],
+                "properties": {
+                  "action": {
+                    "const": "start_ramp",
+                    "type": "string"
+                  },
+                  "args": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "target_voltage",
+                      "ramp_rate_v_per_s"
+                    ],
+                    "properties": {
+                      "target_voltage": {
+                        "type": "number"
+                      },
+                      "ramp_rate_v_per_s": {
+                        "type": "number",
+                        "minimum": 0.01,
+                        "maximum": 1000
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "action",
+                  "args"
+                ],
+                "properties": {
+                  "action": {
+                    "const": "stop_ramp",
+                    "type": "string"
+                  },
+                  "args": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [],
+                    "properties": {}
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "action",
+                  "args"
+                ],
+                "properties": {
+                  "action": {
+                    "const": "set_polarization_angle",
+                    "type": "string"
+                  },
+                  "args": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "paddle",
+                      "angle_deg"
+                    ],
+                    "properties": {
+                      "paddle": {
+                        "type": [
+                          "integer",
+                          "string"
+                        ],
+                        "enum": [
+                          1,
+                          2,
+                          "both"
+                        ]
+                      },
+                      "angle_deg": {
+                        "type": "number",
+                        "minimum": 1,
+                        "maximum": 160
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "action",
+                  "args"
+                ],
+                "properties": {
+                  "action": {
+                    "const": "move_polarization",
+                    "type": "string"
+                  },
+                  "args": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "paddle",
+                      "delta_deg"
+                    ],
+                    "properties": {
+                      "paddle": {
+                        "type": [
+                          "integer",
+                          "string"
+                        ],
+                        "enum": [
+                          1,
+                          2,
+                          "both"
+                        ]
+                      },
+                      "delta_deg": {
+                        "type": "number"
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "action",
+                  "args"
+                ],
+                "properties": {
+                  "action": {
+                    "const": "auto_polarization",
+                    "type": "string"
+                  },
+                  "args": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [],
+                    "properties": {}
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "action",
+                  "args"
+                ],
+                "properties": {
+                  "action": {
+                    "const": "start_measurement",
+                    "type": "string"
+                  },
+                  "args": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [],
+                    "properties": {}
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "action",
+                  "args"
+                ],
+                "properties": {
+                  "action": {
+                    "const": "stop_measurement",
+                    "type": "string"
+                  },
+                  "args": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [],
+                    "properties": {}
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "action",
+                  "args"
+                ],
+                "properties": {
+                  "action": {
+                    "const": "wait",
+                    "type": "string"
+                  },
+                  "args": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "seconds"
+                    ],
+                    "properties": {
+                      "seconds": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 3600
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

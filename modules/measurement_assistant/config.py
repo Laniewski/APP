@@ -30,9 +30,10 @@ class AssistantConfig:
     execution_enabled: bool = False
     schema_in_response_format: bool = True
     port: int = 8080
-    context_size: int = 2048
+    context_size: int = 16384
+    debug_io: bool = False
     threads: int = 3
-    timeout_s: float = 120.0
+    timeout_s: float = 300.0
     runs_dir: Path = Path(__file__).resolve().parents[2] / "runs"
 
     @classmethod
@@ -46,6 +47,7 @@ class AssistantConfig:
             raise ValueError("APP_AI_SCHEMA_FORMAT musi mieć wartość nested lub legacy.")
         config = cls(
             execution_enabled=execution in {"1", "true"},
+            debug_io=os.getenv("APP_AI_DEBUG_IO", "0").strip().lower() in {"1", "true"},
             schema_in_response_format=schema_format == "nested",
             binary=Path(os.getenv("APP_AI_BINARY", str(defaults.binary))).expanduser(),
             model=Path(os.getenv("APP_AI_MODEL", str(defaults.model))).expanduser(),
@@ -57,7 +59,7 @@ class AssistantConfig:
         )
         if not 1024 <= config.port <= 65535 or not 1 <= config.threads <= 4:
             raise ValueError("Nieprawidłowy port lub liczba wątków asystenta.")
-        if not 1024 <= config.context_size <= 2048 or not 1 <= config.timeout_s <= 600:
+        if not 1024 <= config.context_size <= 32768 or not 1 <= config.timeout_s <= 600:
             raise ValueError("Nieprawidłowy kontekst lub timeout asystenta.")
         return config
 

@@ -4,13 +4,16 @@ import json
 import math
 from dataclasses import dataclass
 
-from .action_registry import ACTION_REGISTRY
+from .action_registry import action_definitions, EXECUTABLE_ACTIONS
+from .prompt_loader import load_json
 
 
 @dataclass(frozen=True)
 class ValidationResult:
     errors: tuple[str, ...]
     missing_parameters: tuple[str, ...]
+
+    response_type: str = "procedure"
 
     @property
     def structurally_valid(self):
@@ -24,7 +27,7 @@ class ValidationResult:
 
     @property
     def runnable(self):
-        return self.status == "COMPLETE"
+        return self.response_type == "procedure" and self.status == "COMPLETE"
 
 
 def parse_response(text):
@@ -44,142 +47,86 @@ def parse_response(text):
     return result
 
 
+def _matches_type(value, kind):
+    if isinstance(kind, list):
+        return any(_matches_type(value, k) for k in kind)
+    if kind in ("number", "integer"):
+        try:
+            return type(value) in ((int,) if kind == "integer" else (int, float)) and math.isfinite(value)
+        except OverflowError:
+            return False
+    return {"object": dict, "array": list, "string": str, "boolean": bool, "null": type(None)}.get(kind) is type(value)
+
+
+def _check(value, schema, path="$"):
+    """Technical subset used by output_schema.json; never examines user language."""
+    if "oneOf" in schema:
+        matches = [not _check(value, variant, path) for variant in schema["oneOf"]]
+        return [] if sum(matches) == 1 else [f"{path}: struktura nie pasuje do dokładnie jednego wariantu schema."]
+    if "type" in schema and not _matches_type(value, schema["type"]):
+        return [f"{path}: niewłaściwy typ."]
+    errors = []
+    if "const" in schema and value != schema["const"]:
+        errors.append(f"{path}: niewłaściwa wartość stała.")
+    if "enum" in schema and value not in schema["enum"]:
+        errors.append(f"{path}: wartość spoza choices.")
+    if type(value) in (int, float):
+        if value < schema.get("minimum", -math.inf) or value > schema.get("maximum", math.inf):
+            errors.append(f"{path}: wartość poza zakresem.")
+    if isinstance(value, str) and len(value.strip()) < schema.get("minLength", 0):
+        errors.append(f"{path}: pusty tekst.")
+    if isinstance(value, dict):
+        props = schema.get("properties", {})
+        for key in schema.get("required", []):
+            if key not in value:
+                errors.append(f"{path}: brak {key}.")
+        if schema.get("additionalProperties") is False and set(value) - set(props):
+            errors.append(f"{path}: nieznane pola.")
+        for key in set(value) & set(props):
+            errors.extend(_check(value[key], props[key], f"{path}.{key}"))
+    if isinstance(value, list):
+        if not schema.get("minItems", 0) <= len(value) <= schema.get("maxItems", math.inf):
+            errors.append(f"{path}: niewłaściwa liczba elementów.")
+        for i, item in enumerate(value):
+            errors.extend(_check(item, schema.get("items", {}), f"{path}[{i}]"))
+    return errors
+
+
 class PlanValidator:
     def validate(self, plan, request=None):
-        errors = []
-        derived_missing = []
-        if not isinstance(plan, dict):
-            return ValidationResult(("Plan musi być obiektem.",), ())
-        expected = {"title", "steps", "missing_parameters", "notes"}
-        if set(plan) not in (expected, expected | {"request"}):
-            errors.append("Wymagane title, steps, missing_parameters, notes; opcjonalne request.")
-        if not isinstance(plan.get("title"), str) or not plan.get("title", "").strip():
-            errors.append("Brak tytułu planu.")
-        for name in ("missing_parameters", "notes"):
-            if not isinstance(plan.get(name), list) or not all(isinstance(item, str) for item in plan.get(name, [])):
-                errors.append(f"{name} musi być listą tekstów.")
-        if "request" not in plan and isinstance(plan.get("steps"), list) and any(isinstance(s, dict) and "source" in s for s in plan["steps"]):
-            errors.append("Źródła wymagają pola request.")
-        steps = plan.get("steps")
-        if not isinstance(steps, list) or not 0 <= len(steps) <= 100:
-            errors.append("Plan musi zawierać od 0 do 100 kroków.")
-            steps = []
-        if isinstance(plan.get("steps"), list) and not steps:
-            derived_missing.append("Podaj co najmniej jedną obsługiwaną akcję.")
-        for number, step in enumerate(steps, 1):
-            if not isinstance(step, dict) or set(step) not in ({"description", "action", "args"}, {"description", "action", "args", "source"}):
-                errors.append(f"Krok {number}: nieprawidłowe pola.")
-                continue
-            if not isinstance(step["description"], str):
-                errors.append(f"Krok {number}: description musi być tekstem.")
-            if "source" in step:
-                source = step["source"]
-                if (not isinstance(source, list) or len(source) != 2
-                        or any(type(v) is not int for v in source)
-                        or not 0 <= source[0] < source[1]):
-                    errors.append(f"Krok {number}: nieprawidłowe indeksy źródła.")
-            name = step["action"]
-            if name == "unsupported":
-                if step["args"] != {}:
-                    errors.append(f"Krok {number}: unsupported wymaga pustych args.")
-                errors.append(f"Krok {number}: nieobsługiwana lub nierozpoznana czynność: {step['description']}")
-                continue
-            spec = ACTION_REGISTRY.get(name) if isinstance(name, str) else None
-            if spec is None:
-                errors.append(f"Krok {number}: nieznana akcja {name!r}.")
-                continue
-            args = step["args"]
-            required = {key for key, arg in spec.arguments.items() if arg.required}
-            if not isinstance(args, dict) or not required <= set(args) or not set(args) <= set(spec.arguments):
-                errors.append(f"Krok {number}: wymagane argumenty: {sorted(required)}; nie wolno dodawać innych.")
-                continue
-            for key, arg_spec in spec.arguments.items():
-                if key not in args:
+        # request retained only for callers' compatibility; never interpreted.
+        kind = plan.get("type") if isinstance(plan, dict) else None
+        errors = _check(plan, response_schema(), "$")
+        missing = []
+        if kind == "procedure" and isinstance(plan.get("steps"), list):
+            definitions = action_definitions()
+            for index, step in enumerate(plan["steps"], 1):
+                if not isinstance(step, dict):
                     continue
-                value = args[key]
-                if value is None:
-                    if not arg_spec.nullable:
-                        errors.append(f"Krok {number}: {key} nie dopuszcza null.")
-                    elif arg_spec.required:
-                        derived_missing.append(f"Krok {number}: {spec.missing_question(key, args)}")
+                name = step.get("action")
+                spec = definitions.get(name) if isinstance(name, str) else None
+                if spec is None:
+                    errors.append(f"Krok {index}: nieznana akcja.")
                     continue
-                numeric = isinstance(value, (int, float)) and not isinstance(value, bool)
-                try:
-                    finite = numeric and math.isfinite(value)
-                except OverflowError:
-                    finite = False
-                if not finite or (arg_spec.kind == "integer" and not isinstance(value, int)):
-                    errors.append(f"Krok {number}: {key} ma niewłaściwy typ.")
-                elif (arg_spec.minimum is not None and value < arg_spec.minimum
-                      or arg_spec.maximum is not None and value > arg_spec.maximum
-                      or arg_spec.choices and value not in arg_spec.choices):
-                    errors.append(f"Krok {number}: {key} poza dozwolonym zakresem.")
-        if "request" in plan:
-            from .grounding import grounding_errors
-            original = plan["request"]
-            if not isinstance(original, str) or (not original.strip() or len(original) > 4000):
-                errors.append("Nieprawidłowe pole request.")
-            else:
-                errors.extend(grounding_errors(plan, original))
-                if request is not None and request != original:
-                    errors.append("Pole request różni się od polecenia użytkownika.")
-        elif request and not errors:
-            from .grounding import grounded_plan
-            expected_steps = grounded_plan(request)["steps"]
-            actual = [(s.get("action"), s.get("args")) for s in steps if isinstance(s, dict)]
-            expected_actions = [(s["action"], s["args"]) for s in expected_steps]
-            if actual != expected_actions:
-                errors.append("Plan nie odpowiada akcjom i wartościom polecenia.")
-        missing = plan.get("missing_parameters", [])
-        missing = derived_missing + (list(missing) if isinstance(missing, list) and all(isinstance(x, str) for x in missing) else [])
-        if requires_unsupported_stabilization(request):
-            missing.append(STABILIZATION_MISSING)
-        return ValidationResult(tuple(errors), tuple(dict.fromkeys(missing)))
-
-
-STABILIZATION_MISSING = (
-    "Podaj tolerancję temperatury i czas stabilności. Akcja wykrywania stabilizacji "
-    "nie jest jeszcze dostępna; zwykłe wait nie może jej zastąpić."
-)
-
-
-def requires_unsupported_stabilization(request):
-    """Konserwatywna blokada znanej, nieobsługiwanej intencji — nie parser procedur."""
-    if not isinstance(request, str):
-        return False
-    text = request.casefold()
-    return any(word in text for word in ("stabil", "stable", "steady state"))
+                if not spec.get("executable") or name not in EXECUTABLE_ACTIONS:
+                    errors.append(f"Krok {index}: {name} nie ma dostępnego adaptera wykonawczego.")
+                args = step.get("args")
+                if not isinstance(args, dict):
+                    continue
+                if set(args) - set(spec["arguments"]):
+                    errors.append(f"Krok {index}: nieznane argumenty.")
+                for key, arg in spec["arguments"].items():
+                    if key not in args:
+                        if arg["required"]:
+                            missing.append(arg["missing_error"])
+                            errors.append(f"Krok {index}: brak {key}.")
+                        continue
+                    rules = {k: arg[k] for k in ("type", "minimum", "maximum") if k in arg}
+                    if "choices" in arg:
+                        rules["enum"] = arg["choices"]
+                    errors.extend(_check(args[key], rules, f"Krok {index}.{key}"))
+        return ValidationResult(tuple(errors), tuple(missing), kind)
 
 
 def response_schema():
-    variants = []
-    for spec in ACTION_REGISTRY.values():
-        variants.append({
-            "type": "object", "additionalProperties": False,
-            "required": ["description", "action", "args"],
-            "properties": {
-                "source": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "integer", "minimum": 0}},
-                "description": {"type": "string"},
-                "action": {"type": "string", "const": spec.name},
-                "args": {"type": "object", "additionalProperties": False,
-                         "required": [key for key, arg in spec.arguments.items() if arg.required],
-                         "properties": {key: arg.schema() for key, arg in spec.arguments.items()}},
-            },
-        })
-    variants.append({"type": "object", "additionalProperties": False,
-                     "required": ["description", "action", "args"],
-                     "properties": {"source": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "integer", "minimum": 0}}, "description": {"type": "string"},
-                                    "action": {"const": "unsupported", "type": "string"},
-                                    "args": {"type": "object", "additionalProperties": False, "properties": {}}}})
-    return {
-        "type": "object", "additionalProperties": False,
-        "required": ["title", "steps", "missing_parameters", "notes"],
-        "properties": {
-            "request": {"type": "string", "minLength": 1, "maxLength": 4000},
-            "title": {"type": "string"},
-            "steps": {"type": "array", "minItems": 0, "maxItems": 100,
-                      "items": {"oneOf": variants}},
-            "missing_parameters": {"type": "array", "items": {"type": "string"}},
-            "notes": {"type": "array", "items": {"type": "string"}},
-        },
-    }
+    return load_json("output_schema.json")

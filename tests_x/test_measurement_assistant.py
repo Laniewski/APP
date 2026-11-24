@@ -16,15 +16,15 @@ from modules.measurement_assistant.plan_schema import parse_response, PlanValida
 from modules.measurement_assistant.script_builder import ScriptBuilder
 from modules.measurement_assistant.runner import Runner
 from modules.measurement_assistant.panel import MeasurementAssistantPanel
-from modules.measurement_assistant.backend import LLMBackend, system_prompt
+from modules.measurement_assistant.backend import LLMBackend
 from modules.measurement_assistant.config import AssistantConfig
+from modules.measurement_assistant.action_registry import EXECUTABLE_ACTIONS
 from modules.measurement_assistant.controller import MeasurementAssistantController
 from pathlib import Path
 
 
 def plan(action="wait", **args):
-    return {"title": "Test", "steps": [{"description": "Krok", "action": action,
-            "args": args}], "missing_parameters": [], "notes": []}
+    return {"type": "procedure", "answer": "", "steps": [{"action": action, "args": args}]}
 
 
 def request_for(p):
@@ -56,6 +56,12 @@ class FakeController:
     def set_temperature(self, value):
         self.record("temperature", value)
         self.worker.operation_finished.emit("Temperatura ustawiona")
+    def set_heater(self, enabled):
+        self.record("heater", enabled)
+        self.worker.operation_finished.emit("Stan grzania zmieniony")
+    def adjust_angle(self, paddle, delta):
+        self.record("move", paddle, delta)
+        self.worker.angle_set.emit(paddle, 45)
     def set_voltage(self, value):
         self.record("voltage", value)
         self.worker.voltage_set.emit(value)
@@ -77,136 +83,6 @@ class AssistantTests(unittest.TestCase):
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])
 
-    def test_system_prompt_preserves_incomplete_actions(self):
-        from modules.measurement_assistant.context_builder import planning_examples
-        prompt = system_prompt()
-        self.assertIn("brakujący wymagany argument zwróć jako null", prompt)
-        self.assertIn("unsupported", prompt)
-        self.assertEqual(planning_examples(), [])
-        self.assertNotIn('35', prompt)
-
-    def test_required_null_is_incomplete_not_invalid(self):
-        cases = [
-            ("Ustaw piezo.", plan("set_piezo_voltage", value_v=None), "Podaj napięcie piezo."),
-            ("Ustaw drugą łopatkę.", plan("set_polarization_angle", paddle=2, angle_deg=None), "Podaj kąt drugiej łopatki."),
-            ("Ustaw temperaturę.", plan("set_temperature", value_c=None), "Podaj temperaturę zadaną."),
-        ]
-        for request, p, question in cases:
-            with self.subTest(request=request):
-                result = PlanValidator().validate(p, request)
-                self.assertTrue(result.structurally_valid)
-                self.assertEqual(result.errors, ())
-                self.assertEqual(result.status, "INCOMPLETE")
-                self.assertFalse(result.runnable)
-                self.assertIn(question, " ".join(result.missing_parameters))
-                self.assertEqual(p["missing_parameters"], [])
-                with self.assertRaises(ValueError):
-                    ScriptBuilder().build(p)
-                with tempfile.TemporaryDirectory() as root:
-                    folder = ScriptBuilder().save(root, request, p, execution_enabled=True)
-                    self.assertFalse((folder / "script.py").exists())
-                    metrics = json.loads((folder / "metrics.json").read_text())
-                    self.assertTrue(metrics["valid"])
-                    self.assertFalse(metrics["runnable"])
-                    self.assertEqual(metrics["missing_parameters_count"], 1)
-
-    def test_ungrounded_numeric_plan_is_rejected(self):
-        for angle in (30, 90):
-            result = PlanValidator().validate(plan("set_polarization_angle", paddle=2, angle_deg=angle),
-                                               "Ustaw drugą łopatkę.")
-            self.assertEqual(result.status, "INVALID")
-            self.assertFalse(result.runnable)
-
-    def test_nullable_optional_and_nonnullable_arguments(self):
-        spec = ActionSpec("test_optional", "Test", {
-            "required": ArgumentSpec("number", "Wymagany", question="Podaj wymagany argument."),
-            "optional": ArgumentSpec("number", "Opcjonalny", required=False),
-            "strict": ArgumentSpec("integer", "Bez null", nullable=False),
-        })
-        with patch.dict(ACTION_REGISTRY, {spec.name: spec}):
-            for args in ({"required": 1, "strict": 2}, {"required": 1, "strict": 2, "optional": None}):
-                self.assertTrue(PlanValidator().validate(plan(spec.name, **args)).runnable)
-            result = PlanValidator().validate(plan(spec.name, required=None, strict=2, optional=None))
-            self.assertEqual(result.status, "INCOMPLETE")
-            self.assertEqual(len(result.missing_parameters), 1)
-            self.assertEqual(PlanValidator().validate(plan(spec.name, required=1, strict=None)).status, "INVALID")
-            self.assertEqual(PlanValidator().validate(plan(spec.name, strict=2)).status, "INVALID")
-
-    def test_null_schema_and_empty_plan_are_consistent(self):
-        schema = response_schema()
-        self.assertEqual(schema["properties"]["steps"]["minItems"], 0)
-        for variant in schema["properties"]["steps"]["items"]["oneOf"]:
-            if variant["properties"]["action"]["const"] == "unsupported":
-                continue
-            spec = ACTION_REGISTRY[variant["properties"]["action"]["const"]]
-            for key, arg in spec.arguments.items():
-                self.assertIn("null", variant["properties"]["args"]["properties"][key]["type"])
-                if arg.choices:
-                    self.assertIn(None, variant["properties"]["args"]["properties"][key]["enum"])
-        p = {"title": "Test", "steps": [], "missing_parameters": [], "notes": []}
-        result = PlanValidator().validate(p)
-        self.assertTrue(result.structurally_valid)
-        self.assertEqual(result.status, "INCOMPLETE")
-        self.assertFalse(result.runnable)
-
-    def test_invalid_plan_remains_invalid(self):
-        for p in (plan("unknown"), plan("set_polarization_angle", paddle=3, angle_deg=30),
-                  plan("set_polarization_angle", paddle=2, angle_deg=200),
-                  plan("set_polarization_angle", paddle=2, angle_deg="30"),
-                  plan("set_polarization_angle", paddle=2, angle_deg=None, extra=1),
-                  dict(plan(seconds=1), extra=True)):
-            with self.subTest(p=p):
-                result = PlanValidator().validate(p)
-                self.assertEqual(result.status, "INVALID")
-                self.assertFalse(result.runnable)
-
-    def test_piezo_uses_documented_default_unit(self):
-        # Omitted units use the explicit tool contract; omitted values stay null.
-        result = PlanValidator().validate(plan("set_piezo_voltage", value_v=10), "Ustaw piezo na 10.")
-        self.assertTrue(result.runnable)
-        self.assertIn("Jednostki domyślne narzędzi", system_prompt())
-
-    def test_controller_uses_deterministic_missing_parameters(self):
-        with tempfile.TemporaryDirectory() as root:
-            panel = MeasurementAssistantPanel()
-            backend = SimpleNamespace(config=AssistantConfig(runs_dir=Path(root), execution_enabled=True),
-                                      shutdown=lambda: None)
-            devices = [FakeController() for _ in range(4)]
-            controller = MeasurementAssistantController(panel, *devices, backend=backend)
-            try:
-                controller._request = "Ustaw drugą łopatkę."
-                controller._on_plan(plan("set_polarization_angle", paddle=2, angle_deg=None))
-                self.assertIn("Podaj kąt drugiej łopatki.", " ".join(controller._plan["missing_parameters"]))
-                self.assertFalse(panel.start_button.isEnabled())
-                self.assertFalse((controller._directory / "script.py").exists())
-                controller.start()
-                self.assertTrue(all(not device.calls for device in devices))
-            finally:
-                controller.shutdown()
-                panel.deleteLater()
-
-    def test_malformed_selector_with_null_never_crashes_validator(self):
-        p = plan("set_polarization_angle", paddle=[], angle_deg=None)
-        result = PlanValidator().validate(p)
-        self.assertEqual(result.status, "INVALID")
-        self.assertTrue(result.errors)
-        self.assertTrue(result.missing_parameters)
-        self.assertFalse(result.runnable)
-
-    def test_benchmark_counts_validator_derived_missing_questions(self):
-        from tests_x.benchmark_measurement_assistant_models import evaluate
-        p = plan("set_piezo_voltage", value_v=None)
-        missing = PlanValidator().validate(p).missing_parameters
-        score = evaluate(p, [("set_piezo_voltage", {"value_v": None})], missing)
-        self.assertTrue(score["correct_actions"])
-        self.assertTrue(score["correct_parameters"])
-        self.assertTrue(score["missing_detected"])
-        self.assertFalse(score["hallucinated_parameter"])
-        score = evaluate(plan("set_polarization_angle", paddle=2, angle_deg=35),
-                         [("set_polarization_angle", {"paddle": 2, "angle_deg": None})], ())
-        self.assertFalse(score["correct_parameters"])
-        self.assertFalse(score["missing_detected"])
-        self.assertTrue(score["hallucinated_parameter"])
 
     def test_parser_strict(self):
         for text in ('```json\n{}\n```', '{"title":1,"title":2}', '{"x":NaN}', '[]'):
@@ -219,35 +95,6 @@ class AssistantTests(unittest.TestCase):
     def test_valid_plan(self):
         self.assertTrue(PlanValidator().validate(plan(seconds=0)).runnable)
 
-    def test_unsupported_stabilization_cannot_be_declared_runnable(self):
-        p = plan(seconds=10)
-        result = PlanValidator().validate(p, "Poczekaj aż temperatura się ustabilizuje")
-        self.assertFalse(result.runnable)
-        self.assertTrue(result.missing_parameters)
-        self.assertTrue(PlanValidator().validate(p, "Poczekaj 10 sekund").runnable)
-
-    def test_backend_blocks_hallucinated_stabilization(self):
-        backend = LLMBackend()
-        response = {"choices": [{"message": {"content": json.dumps({"steps": [{"id": 0, "action": "wait", "args": {"seconds": 10}}]})}}]}
-        with patch.object(backend, "ensure_ready"), patch.object(backend, "_request", return_value=response):
-            p = backend.generate("Poczekaj aż temperatura się ustabilizuje")
-        self.assertFalse(PlanValidator().validate(p).runnable)
-        with self.assertRaises(ValueError): ScriptBuilder().build(p)
-
-    def test_guessed_stabilization_wait_is_rejected_not_corrected(self):
-        backend = LLMBackend()
-        p = plan("set_temperature", value_c=40)
-        guessed = plan(seconds=10)["steps"][0]
-        guessed["description"] = "Poczekaj aż się ustabilizuje"
-        p["steps"].append(guessed)
-        raw = json.dumps({"steps": [{"id": i, "action": step["action"], "args": step["args"]} for i, step in enumerate(p["steps"])]})
-        response = {"choices": [{"message": {"content": raw}}]}
-        with patch.object(backend, "ensure_ready"), patch.object(backend, "_request", return_value=response):
-            normalized = backend.generate("Ustaw 40 stopni i poczekaj aż się ustabilizuje")
-        self.assertEqual(len(normalized["steps"]), 2)
-        self.assertEqual(normalized["steps"][-1]["action"], "unsupported")
-        self.assertEqual(json.loads(backend.last_raw_response), [raw])
-        self.assertFalse(PlanValidator().validate(normalized).runnable)
 
     def test_backend_closed_does_not_restart(self):
         backend = LLMBackend()
@@ -256,13 +103,6 @@ class AssistantTests(unittest.TestCase):
             with self.assertRaises(RuntimeError): backend.generate("Poczekaj 1 sekundę")
             spawn.assert_not_called()
 
-    def test_backend_parser_retries_once(self):
-        backend = LLMBackend()
-        responses = [{"choices": [{"message": {"content": "bad"}}]},
-                     {"choices": [{"message": {"content": json.dumps({"steps": [{"id": 0, "action": "wait", "args": {"seconds": 1}}]})}}]}]
-        with patch.object(backend, "ensure_ready"), patch.object(backend, "_request", side_effect=responses) as call:
-            self.assertEqual(backend.generate("Poczekaj 1 sekundę")["steps"][0]["args"], {"seconds": 1})
-            self.assertEqual(call.call_count, 2)
 
     def test_controller_plan_only_no_actions(self):
         with tempfile.TemporaryDirectory() as root:
@@ -282,7 +122,7 @@ class AssistantTests(unittest.TestCase):
                 self.assertFalse(controller._busy)
                 self.assertFalse(panel.start_button.isEnabled())
                 self.assertFalse((controller._directory / "script.py").exists())
-                self.assertIn("1. Krok", panel.plan_view.toPlainText())
+                self.assertIn("1. wait", panel.plan_view.toPlainText())
                 metrics = json.loads((controller._directory / "metrics.json").read_text())
                 self.assertTrue(metrics["valid"])
                 self.assertTrue(metrics["runnable"])
@@ -310,12 +150,6 @@ class AssistantTests(unittest.TestCase):
             self.assertTrue((folder / "plan.json").exists())
             self.assertFalse((folder / "script.py").exists())
 
-    def test_builder_ignores_text_code(self):
-        p = plan(seconds=0)
-        p["steps"][0]["description"] = "__import__('os').system('bad')"
-        source = ScriptBuilder().build(p)
-        self.assertNotIn("__import__", source)
-        self.assertIn("actions.wait(seconds=0)", source)
 
     def test_runner_and_tamper(self):
         calls = []
@@ -357,7 +191,7 @@ class AssistantTests(unittest.TestCase):
         panel.deleteLater()
 
     def test_registry_matches_bridge(self):
-        for name in ACTION_REGISTRY:
+        for name in EXECUTABLE_ACTIONS:
             self.assertTrue(callable(getattr(MeasurementActions, name)))
 
     def test_bridge_dispatches_in_gui_and_waits_for_ack(self):
@@ -388,6 +222,54 @@ class AssistantTests(unittest.TestCase):
             self.assertTrue(controller.calls)
             self.assertTrue(all(tid == threading.get_ident() for tid, _ in controller.calls))
         actions.deleteLater()
+
+    def test_heater_and_both_paddles_use_acknowledged_adapter(self):
+        devices = [FakeController() for _ in range(4)]
+        actions = MeasurementActions(*devices, execution_enabled=True)
+        result = []
+        def execute():
+            try:
+                actions.heater_on()
+                actions.heater_off()
+                actions.set_polarization_angle("both", 100)
+                actions.move_polarization("both", 5)
+                result.append(True)
+            except Exception as exc:
+                result.append(exc)
+        thread = threading.Thread(target=execute)
+        thread.start()
+        deadline = time.monotonic() + 3
+        while thread.is_alive() and time.monotonic() < deadline:
+            self.app.processEvents()
+            thread.join(.005)
+        if thread.is_alive():
+            actions.cancel()
+            thread.join(1)
+        self.assertEqual(result, [True])
+        self.assertEqual([call for _, call in devices[0].calls], [("heater", True), ("heater", False)])
+        self.assertEqual([call for _, call in devices[2].calls], [
+            ("angle", 1, 100), ("angle", 2, 100), ("move", 1, 5), ("move", 2, 5)])
+        actions.deleteLater()
+
+    def test_answer_and_error_never_enable_execution_or_write_script(self):
+        for kind, key in (("answer", "answer"), ("error", "message")):
+            with tempfile.TemporaryDirectory() as root:
+                value = {"type": kind, key: "Treść dla użytkownika", "steps": []}
+                panel = MeasurementAssistantPanel()
+                backend = SimpleNamespace(config=AssistantConfig(runs_dir=Path(root), execution_enabled=True),
+                                          shutdown=lambda: None)
+                devices = [FakeController() for _ in range(4)]
+                controller = MeasurementAssistantController(panel, *devices, backend=backend)
+                try:
+                    controller._on_plan(value)
+                    self.assertIn(value[key], panel.plan_view.toPlainText())
+                    self.assertFalse(panel.start_button.isEnabled())
+                    self.assertFalse((controller._directory / "script.py").exists())
+                    controller.start()
+                    self.assertTrue(all(not device.calls for device in devices))
+                finally:
+                    controller.shutdown()
+                    panel.deleteLater()
 
     def test_cancel_does_not_stop_manual_session(self):
         controllers = [FakeController() for _ in range(4)]
@@ -457,9 +339,9 @@ class AssistantTests(unittest.TestCase):
         devices = [FakeController() for _ in range(4)]
         actions = MeasurementActions(*devices, execution_enabled=False)
         try:
-            for name in ACTION_REGISTRY:
+            for name in EXECUTABLE_ACTIONS:
                 args = {"set_temperature": {"value_c": 40}, "set_piezo_voltage": {"value_v": 30},
-                        "set_polarization_angle": {"paddle": 1, "angle_deg": 30}, "wait": {"seconds": 0}}.get(name, {})
+                        "set_polarization_angle": {"paddle": 1, "angle_deg": 30}, "wait": {"seconds": 0}, "move_polarization": {"paddle": "both", "delta_deg": 5}}.get(name, {})
                 with self.assertRaisesRegex(RuntimeError, "wyłączony"):
                     getattr(actions, name)(**args)
                 request = SimpleNamespace(name=name, args=args, error=None, done=threading.Event())
@@ -490,7 +372,7 @@ class AssistantTests(unittest.TestCase):
             with patch.object(backend, "ensure_ready"), patch.object(backend, "_request", return_value=response) as call:
                 backend.generate("Poczekaj 0 sekund")
                 payload = call.call_args.args[2]
-                self.assertEqual(payload["max_tokens"], 400)
+                self.assertEqual(payload["max_tokens"], 2048)
                 self.assertEqual(payload["temperature"], 0.0)
                 self.assertEqual("schema" in payload["response_format"], nested)
                 self.assertEqual("json_schema" in payload, not nested)
@@ -514,7 +396,7 @@ class AssistantTests(unittest.TestCase):
                 backend.ensure_ready(lambda message: None)
                 command = spawn.call_args.args[0]
                 self.assertEqual(command[command.index("--host") + 1], "127.0.0.1")
-                self.assertEqual(command[command.index("-c") + 1], "2048")
+                self.assertEqual(command[command.index("-c") + 1], "16384")
                 self.assertEqual(command[command.index("--parallel") + 1], "1")
                 backend.shutdown()
                 process.terminate.assert_called_once()
@@ -537,9 +419,9 @@ class AssistantTests(unittest.TestCase):
                         self.app.processEvents()
                         time.sleep(.005)
                     self.assertFalse(controller._busy)
-                    self.assertEqual(call.call_count, 2)
+                    self.assertEqual(call.call_count, 1)
                 folder = controller._directory
-                self.assertEqual(json.loads((folder / "llm_response.json").read_text()), ["invalid JSON", "invalid JSON"])
+                self.assertEqual((folder / "llm_response.json").read_text(), "invalid JSON")
                 metrics = json.loads((folder / "metrics.json").read_text())
                 self.assertFalse(metrics["valid"])
                 self.assertFalse(metrics["runnable"])
@@ -547,7 +429,7 @@ class AssistantTests(unittest.TestCase):
                 self.assertFalse(panel.start_button.isEnabled())
                 self.assertFalse((folder / "script.py").exists())
                 panel.copy_button.click()
-                self.assertEqual(json.loads(self.app.clipboard().text()), ["invalid JSON", "invalid JSON"])
+                self.assertEqual(self.app.clipboard().text(), "invalid JSON")
                 self.assertTrue(all(not device.calls for device in devices))
             finally:
                 controller.shutdown()

@@ -1,85 +1,144 @@
-# Lokalny asystent procedur
+# Asystent laboratoryjny — model rozumie język
 
-Wykonanie jest domyślnie wyłączone: `APP_AI_EXECUTION_ENABLED=0`.
-Planowanie nie łączy urządzeń. Nieobsługiwane operacje oraz brakujące argumenty
-blokują cały plan, także wtedy, gdy pozostałe kroki są poprawne.
+`APP_AI_EXECUTION_ENABLED=0` pozostaje domyślne. Generowanie odpowiedzi nigdy
+nie uruchamia procedury. Model pozostaje Qwen3.5-2B Q4_K_M przez llama-server.
 
-## Przepływ
+## Dane i przepływ
 
-Polecenie → segmentacja z indeksami źródła → ekstrakcja Qwen w partiach po trzy
-fragmenty → deterministyczna interpretacja ograniczonej gramatyki → niezależny
-PlanValidator → podgląd i zapis → feature gate → ScriptBuilder → Runner →
-MeasurementActions → istniejące kontrolery.
+GUI → controller/worker → `prompt_loader.load_messages` → backend → Qwen →
+JSON → parser → techniczny PlanValidator → GUI.
 
-Model jest pomocniczym ekstraktorem. Jego wynik porównujemy z gramatyką i zapisujemy
-osobno. Nie może dodawać dozwolonych operacji ani nadawać wartości argumentom
-poza gramatyką. To konserwatywny kompromis: nowa parafraza może zostać zablokowana,
-choć człowiek lub model rozumie ją poprawnie. `unsupported` oznacza również
-„nie udało się bezpiecznie rozpoznać”, nie tylko brak funkcji urządzenia.
+- `answer`: odpowiedź na pytanie, puste steps, brak skryptu.
+- `error`: komunikat modelu o niekompletnym/niedostępnym poleceniu, puste steps.
+- `procedure`: niepuste kroki action/args, podgląd i walidacja.
 
-## Kontrakt
+Dopiero osobne kliknięcie Rozpocznij przy włączonym wykonaniu pozwala przejść:
+PlanValidator → deterministyczny ScriptBuilder → Runner (sprawdza zgodność pliku
+z generatorem) → MeasurementActions → istniejące kontrolery.
+Runner ponownie waliduje plan przez ScriptBuilder. LLM nie generuje kodu.
 
-```json
-{
-  "title": "Plan procedury",
-  "request": "Ustaw piezo.",
-  "steps": [{"description": "Ustaw piezo", "action": "set_piezo_voltage",
-             "args": {"value_v": null}, "source": [0, 11]}],
-  "missing_parameters": [],
-  "notes": []
-}
-```
+Dane wejściowe modelu są w katalogu głównym `ai_context/`:
 
-`source` to półotwarty przedział indeksów znaków Pythona w oryginalnym `request`.
-Interpunkcja dzieląca zdania może należeć do separatora, więc rzeczywiste indeksy
-należy odczytać z wygenerowanego planu. Opis jest kopią fragmentu, a nie prozą LLM.
-Walidator ponownie wyznacza akcje, argumenty, kolejność, opisy i indeksy z request.
+- `assistant_prompt.txt`: wyłącznie instrukcja dla modelu;
+- `station_and_actions.json`: opisy urządzeń, argumenty, zakresy, przykłady,
+  niekompletne polecenia i dostępność adapterów;
+- `output_schema.json`: trzy rozłączne typy odpowiedzi;
+- `data/`: własne małe materiały UTF-8 `.txt` i `.md`, także w podkatalogach.
+  Loader sortuje ścieżki, oznacza źródła, pomija README i inne rozszerzenia.
+  Nie ma RAG ani bazy wektorowej. Nie umieszczaj tu sekretów.
 
-- COMPLETE: wszystkie wymagane wartości jawne i prawidłowe; brak unsupported.
-- INCOMPLETE: wymagany argument `null`. Pytania wyznacza rejestr, nie LLM.
-- INVALID: unsupported/unknown, błędny typ/zakres, zmienione źródło lub plan.
+W Pythonie nie ma aktywnego parsera języka użytkownika. `grounding.py`,
+`context_builder.py` i stare benchmarki zachowano jako historyczne eksperymenty,
+ale nie uczestniczą w generowaniu ani walidacji. Historyczne plany są odrzucane.
+Stary benchmark kończy się wskazaniem nowego narzędzia.
 
-Starsze plany bez request/source zachowano dla zgodności API; bez przekazanego
-polecenia można sprawdzić tylko ich strukturę. Nowy backend zawsze dołącza źródło.
-Nie należy przekazywać surowego wyniku modelu bezpośrednio do Runnera.
+## Kontrakt wykonawczy
 
-`unsupported` ma `args={}` i nie należy do rejestru wykonywalnych akcji.
-„Włącz grzałkę”, „zapisz plik”, stabilizacja i mail pozostają w kolejności kroków.
-Liczba mnoga „łopatki” oznacza obie dostępne łopatki, kolejno 1 i 2.
-Brak numeru w liczbie pojedynczej daje `paddle=null`.
-Jednostki bez dopisku: C, V, stopnie, sekundy. Inne jednostki nie są przeliczane.
+| Akcja | Argumenty | Adapter AI |
+|---|---|---|
+| set_temperature | value_c: 20–200 °C | tak |
+| heater_on | brak | tak |
+| heater_off | brak | tak |
+| set_piezo_voltage | value_v: V | tak, efektywny zakres sprawdza sterownik |
+| set_ramp_speed | ramp_rate_v_per_s: 0,01–1000 V/s | nie |
+| start_ramp | target_voltage: V, ramp_rate_v_per_s: 0,01–1000 V/s | nie |
+| stop_ramp | brak | nie |
+| set_polarization_angle | paddle: 1, 2, "both"; angle_deg: 1–160° | tak |
+| move_polarization | paddle: 1, 2, "both"; delta_deg: stopnie | tak |
+| auto_polarization | brak | nie |
+| start_measurement | brak | tak |
+| stop_measurement | brak | tak |
+| wait | seconds: 0–3600 s | tak |
 
-## Model i zasoby
+`both` wykonuje kolejno ruch 1 i 2, z potwierdzeniem każdego ruchu. Ruch względny
+korzysta z odczytu pozycji i istniejącego ograniczania wyniku do 1–160° w MPC220.
+Grzałka czeka na istniejący sygnał zakończenia zmiany stanu.
 
-Domyślnie Qwen3.5-2B Q4_K_M: najpierw plik
-`~/.local/share/app-v2/models/Qwen3.5-2B-Q4_K_M.gguf`, następnie już istniejący cache
-repozytorium `openresearchtools/Qwen3.5-2B-GGUF`. Nie ma automatycznego pobierania.
-`APP_AI_MODEL` nadpisuje wybór. Kontekst 2048, trzy wątki CPU, jeden slot,
-`--no-mmproj --reasoning off`. Zmienne `APP_AI_BINARY`, `APP_AI_PORT`,
-`APP_AI_THREADS`, `APP_AI_TIMEOUT`, `APP_AI_SCHEMA_FORMAT` pozostają dostępne.
+Rampa GUI jest jednorazowym przebiegiem od aktualnego do docelowego napięcia.
+Zakres napięcia odczytuje MDT694B (ograniczenia osi, systemu i przełącznika).
+Pole prędkości GUI nie ma osobnego API kontrolera. Start/stop rampy nie mają
+kompletnego kontraktu potwierdzeń dla runnera (np. start przy już osiągniętym
+celu i stop nieaktywnej rampy). Dlatego te trzy akcje mają executable=false.
 
-Prompt nie zawiera few-shot ani antyprzykładów. Każda partia ma maksymalnie trzy
-fragmenty, 400 tokenów wyjścia i jedną próbę naprawy struktury. Limit wejścia:
-4000 znaków, 50 fragmentów; partia ponad 1000 znaków jest odrzucana. Bardzo długie
-lub nietypowo tokenizowane polecenie nadal może przekroczyć kontekst serwera.
-Anulowanie sprawdzamy również między partiami i po odebraniu odpowiedzi.
+Automatyczna polaryzacja nie przyjmuje parametrów użytkownika. Wymaga MPC220,
+MDT694B, aktywnego ADS1263 oraz grzałki potwierdzonej jako wyłączona lub odłączonego
+TC200. Używa własnych stałych algorytmu (piezo 80–150 V, 20 V/s). Integracja AI
+wymaga osobnej obsługi długiego wykonania, odrzucenia startu i anulowania zasobów;
+obecnie executable=false. Nie zastępuj jej domyślnymi ruchami łopatek.
 
-## Artefakty i testy
+Walidator sprawdza zarówno schema, jak i aktualny katalog akcji. Kodowa allowlista
+adapterów nie pozwala samą edycją JSON nadać uprawnień nowej akcji. Wszystkie
+wymagane wartości muszą istnieć, null i bool jako liczba są niedozwolone.
+Nieznane pola/akcje, złe typy i zakresy oraz niedostępny adapter blokują wykonanie.
 
-W `runs/` zapisywane są request, finalny plan, lista surowych odpowiedzi LLM,
-metryki wszystkich prób i log. Kopiowanie JSON w GUI kopiuje finalny plan;
-surowe odpowiedzi są dostępne w `llm_response.json`. Uszkodzone odpowiedzi także
-są zachowane. ScriptBuilder ponownie waliduje przed zapisem i usuwa stary skrypt,
-gdy zastępuje plan niewykonywalnym. Runner sprawdza zgodność bajtów skryptu
-z deterministycznie wygenerowanym kodem.
+Walidacja techniczna nie dowodzi, że model nie wymyślił poprawnej liczby.
+Zakaz zgadywania egzekwujemy instrukcją modelu i mierzymy testami semantycznymi;
+nie wprowadzamy drugiego parsera języka. Użytkownik sprawdza procedurę.
+
+## Runtime i diagnostyka
+
+Zachowano domyślne ścieżki Raspberry Pi i Windows oraz zmienne APP_AI_BINARY,
+APP_AI_MODEL, APP_AI_PORT, APP_AI_THREADS, APP_AI_TIMEOUT, APP_AI_SCHEMA_FORMAT.
+Nie ma automatycznego pobierania modelu. Pełny katalog i schema wymagają większego
+kontekstu: domyślnie APP_AI_CONTEXT=16384 (do 32768), trzy wątki CPU, jeden slot.
+Maksymalna odpowiedź to 2048 tokenów, temperatura 0, reasoning off.
+Domyślny timeout HTTP wynosi 300 s ze względu na pierwszy prefill na Pi.
+Dodatkowe materiały muszą mieścić się w kontekście; duży kontekst zwiększa RAM
+oraz czas przetwarzania na Pi. Loader nie obcina po cichu materiałów.
+
+Backend obsługuje nested schema w response_format oraz legacy json_schema.
+Obcięta lub niepoprawna odpowiedź jest błędem, nigdy planem zastępczym.
+
+`APP_AI_DEBUG_IO=1` zapisuje dokładne messages do `runs/last_model_input.txt`
+i surową treść odpowiedzi do `runs/last_model_response.json` (przy błędzie modelu
+plik może nie być poprawnym JSON). Flaga jest domyślnie wyłączona. Nie zapisuje
+zmiennych środowiska ani konfiguracji systemowej. Materiały i tekst użytkownika
+są częścią wejścia i pojawią się w diagnostyce. GUI nadal zapisuje historię
+request/plan/llm_response/metrics/run.log w osobnych katalogach runs.
+
+## Testy bez fizycznego sprzętu
 
 ```sh
-QT_QPA_PLATFORM=offscreen .venv/bin/python -m unittest discover -s tests_x
-.venv/bin/python tests_x/benchmark_measurement_assistant_models.py --mode before
-.venv/bin/python tests_x/benchmark_measurement_assistant_models.py --mode after
-.venv/bin/python tests_x/benchmark_measurement_assistant_models.py --mode no_examples
+QT_QPA_PLATFORM=offscreen .venv/bin/python -m unittest discover -s tests_x -p 'test_*.py'
+.venv/bin/python -m unittest tests_x.test_ai_pc_only tests_x.test_assistant_grounding
+APP_AI_EXECUTION_ENABLED=0 .venv/bin/python tools/ai_plan_tester.py 'odpal grzanie'
+APP_AI_EXECUTION_ENABLED=0 .venv/bin/python tools/test_assistant_model.py
 ```
 
-Benchmark oczekuje już uruchomionego lokalnego serwera na porcie 18767. Nie
-uruchamia sprzętu ani nie pobiera modeli. `--holdout` dodaje oddzielny pomiar
-parafraz spoza gramatyki. Pełna metodologia i wyniki: `benchmark_results/redesign/`.
+Testy jednostkowe z atrapą odpowiedzi modelu sprawdzają transport i kontrakt,
+nie potwierdzają rozumienia polskiego. Osobny tester rzeczywistego modelu mierzy
+11 wymaganych przypadków i 5 parafraz nieobecnych w examples. Zapisuje wyniki
+w `runs/model_acceptance.json`; nie importuje Qt, sterowników ani runnera.
+
+## Wynik weryfikacji 2026-11-24
+
+- Pełny zestaw aplikacji: **124 testy OK**, wyłącznie atrapy urządzeń i GUI offscreen.
+- PC-only, standardowa biblioteka Pythona: **11 testów OK**.
+- Rzeczywisty Qwen3.5-2B Q4_K_M na Raspberry Pi: **12/16**, tester zakończony kodem 1.
+  Pełna akceptacja semantyczna **nie została osiągnięta**.
+- Nie uruchamiano fizycznego sprzętu. Nie testowano uruchomienia na Windows;
+  zachowano przenośną ścieżkę PC-only i zaktualizowano skrypt środowiska.
+
+Wyniki wraz z sumami kontrolnymi kontekstu:
+[`benchmark_results/model_driven_acceptance.json`](../benchmark_results/model_driven_acceptance.json).
+
+Błędy rzeczywistego modelu:
+
+| Polecenie | Oczekiwano | Zwrócono |
+|---|---|---|
+| ustaw łopatkę na 40 stopni | error: brak paddle | paddle="both" |
+| daj pierwszą na 35 stopni | paddle=1 | paddle="both" |
+| drugą przestaw o trzy stopnie | paddle=2 | paddle="both" |
+| puść grzanie | heater_on | heater_off |
+
+Odpowiedź na pytanie o cel zmiany polaryzacji ma poprawny typ `answer`, ale jest
+błędna rzeczowo (model wymyślił zależność polaryzacji od napięcia piezo i grzałki).
+Ten test, zgodnie z założeniami przy pustym data/, sprawdza wyłącznie typ.
+
+Wcześniejsze próby promptu oraz trybu reasoning nie dały niezawodnego rozpoznania
+braków. Końcowy kontekst ogranicza część błędów, ale model nadal nie spełnia całej
+akceptacji. Nie dodano semantycznego parsera zastępczego. Wykonanie AI pozostaje
+domyślnie wyłączone; poprawność struktury nie jest potwierdzeniem intencji.
+
+Pierwsza odpowiedź w końcowym przebiegu zajęła około 194 s (z przetwarzaniem
+kontekstu), kolejne około 7–37 s. Backend zamknął uruchomiony przez tester serwer.

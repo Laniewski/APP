@@ -1,0 +1,375 @@
+{
+  "station_name": "Stanowisko APPv2",
+  "general_description": "Stanowisko pomiarowe ze sterowaniem temperaturą, piezo, polaryzacją i akwizycją ADS1263.",
+  "global_rules": [
+    "Wymagane wartości muszą pochodzić z wiadomości użytkownika.",
+    "Przykłady są semantyczne, nie stanowią gramatyki.",
+    "Akcje executable=false są niedostępne w runnerze; żądanie wykonania zwróć jako error.",
+    "wait nie oznacza stabilizacji.",
+    "Nie wykonuj procedur automatycznie."
+  ],
+  "devices": [
+    {
+      "id": "tc200",
+      "name": "TC200",
+      "description": "Kontroler temperatury / grzałka.",
+      "possible_user_names": [
+        "TC200",
+        "temperatura",
+        "kontroler temperatury",
+        "grzałka",
+        "grzanie",
+        "ogrzewanie"
+      ],
+      "actions": [
+        {
+          "name": "set_temperature",
+          "description": "Temperatura zadana TC200; nie włącza grzałki ani nie czeka na stabilizację.",
+          "arguments": {
+            "value_c": {
+              "type": "number",
+              "description": "temperaturę",
+              "unit": "°C",
+              "required": true,
+              "missing_error": "Podaj: temperaturę.",
+              "minimum": 20,
+              "maximum": 200
+            }
+          },
+          "examples": [
+            "ustaw temperaturę na 30 stopni",
+            "nastaw 30 stopni",
+            "zmień temperaturę na 30",
+            "zadaj temperaturę 30 stopni"
+          ],
+          "invalid_examples": [
+            {
+              "text": "ustaw temperaturę",
+              "reason": "Brak wartości temperatury."
+            },
+            {
+              "text": "ustaw temperaturę na 300 stopni",
+              "reason": "Poza zakresem 20–200 °C."
+            }
+          ],
+          "executable": true
+        },
+        {
+          "name": "heater_on",
+          "description": "Włącz grzałkę TC200.",
+          "arguments": {},
+          "examples": [
+            "włącz ogrzewanie"
+          ],
+          "invalid_examples": [],
+          "executable": true
+        },
+        {
+          "name": "heater_off",
+          "description": "Wyłącz grzałkę TC200.",
+          "arguments": {},
+          "examples": [
+            "wyłącz grzanie"
+          ],
+          "invalid_examples": [],
+          "executable": true
+        }
+      ]
+    },
+    {
+      "id": "piezo",
+      "name": "MDT694B / piezo",
+      "description": "Element piezoelektryczny zmieniający odkształcenie światłowodu przez napięcie.",
+      "possible_user_names": [
+        "piezo",
+        "płytka piezo",
+        "płytka piezoelektryczna",
+        "piezoelektryk",
+        "napięcie piezo",
+        "odgięcie",
+        "odkształcenie światłowodu",
+        "wygięcie światłowodu",
+        "rampa piezo"
+      ],
+      "actions": [
+        {
+          "name": "set_piezo_voltage",
+          "description": "Ustaw napięcie; zatrzymuje rampę. Efektywny zakres dynamicznie sprawdza sterownik urządzenia.",
+          "arguments": {
+            "value_v": {
+              "type": "number",
+              "description": "napięcie piezo",
+              "unit": "V",
+              "required": true,
+              "missing_error": "Podaj: napięcie piezo."
+            }
+          },
+          "examples": [
+            "ustaw piezo na 20 V",
+            "daj 20 V na piezo",
+            "ustaw napięcie piezo na 20 V",
+            "zmień napięcie płytki na 20 V"
+          ],
+          "invalid_examples": [
+            {
+              "text": "ustaw piezo",
+              "reason": "Brak napięcia."
+            }
+          ],
+          "executable": true
+        },
+        {
+          "name": "set_ramp_speed",
+          "description": "Ustawienie pola prędkości GUI; brak osobnego API kontrolera. Adapter niedostępny.",
+          "arguments": {
+            "ramp_rate_v_per_s": {
+              "type": "number",
+              "description": "prędkość rampy",
+              "unit": "V/s",
+              "required": true,
+              "missing_error": "Podaj: prędkość rampy.",
+              "minimum": 0.01,
+              "maximum": 1000
+            }
+          },
+          "examples": [
+            "ustaw prędkość rampy na 5 V/s"
+          ],
+          "invalid_examples": [
+            {
+              "text": "ustaw prędkość rampy",
+              "reason": "Brak prędkości."
+            }
+          ],
+          "executable": false
+        },
+        {
+          "name": "start_ramp",
+          "description": "Jednorazowa rampa od aktualnego napięcia do target_voltage. Zakres napięcia sprawdza urządzenie. Adapter AI niedostępny.",
+          "arguments": {
+            "target_voltage": {
+              "type": "number",
+              "description": "napięcie docelowe",
+              "unit": "V",
+              "required": true,
+              "missing_error": "Podaj: napięcie docelowe."
+            },
+            "ramp_rate_v_per_s": {
+              "type": "number",
+              "description": "prędkość rampy",
+              "unit": "V/s",
+              "required": true,
+              "missing_error": "Podaj: prędkość rampy.",
+              "minimum": 0.01,
+              "maximum": 1000
+            }
+          },
+          "examples": [
+            "uruchom rampę do 50 V z prędkością 5 V/s"
+          ],
+          "invalid_examples": [
+            {
+              "text": "uruchom rampę",
+              "reason": "Brak napięcia docelowego i prędkości."
+            }
+          ],
+          "executable": false
+        },
+        {
+          "name": "stop_ramp",
+          "description": "Zatrzymaj rampę na aktualnym napięciu. Adapter AI niedostępny.",
+          "arguments": {},
+          "examples": [
+            "zatrzymaj rampę"
+          ],
+          "invalid_examples": [],
+          "executable": false
+        }
+      ]
+    },
+    {
+      "id": "mpc220",
+      "name": "MPC220",
+      "description": "Nastawnik polaryzacji z dwiema sterowanymi łopatkami.",
+      "possible_user_names": [
+        "MPC220",
+        "polaryzacja",
+        "nastawnik polaryzacji",
+        "łopatka",
+        "łopatki",
+        "pierwsza łopatka",
+        "druga łopatka",
+        "obie łopatki",
+        "paddle"
+      ],
+      "actions": [
+        {
+          "name": "set_polarization_angle",
+          "description": "Ustaw jedną lub obie łopatki; both oznacza kolejno 1 i 2.",
+          "arguments": {
+            "paddle": {
+              "type": [
+                "integer",
+                "string"
+              ],
+              "description": "łopatkę 1, 2 lub obie",
+              "unit": null,
+              "required": true,
+              "missing_error": "Podaj: łopatkę 1, 2 lub obie.",
+              "choices": [
+                1,
+                2,
+                "both"
+              ]
+            },
+            "angle_deg": {
+              "type": "number",
+              "description": "kąt łopatki",
+              "unit": "°",
+              "required": true,
+              "missing_error": "Podaj: kąt łopatki.",
+              "minimum": 1,
+              "maximum": 160
+            }
+          },
+          "examples": [
+            "ustaw pierwszą łopatkę na 30 stopni",
+            "ustaw łopatkę 1 na 30 stopni",
+            "drugą daj na 70 stopni",
+            "ustaw obie łopatki na 100 stopni",
+            "obie łopatki daj na 80 stopni",
+            "ustaw łopatki na 120 stopni"
+          ],
+          "invalid_examples": [
+            {
+              "text": "ustaw pierwszą łopatkę",
+              "reason": "Brak kąta."
+            },
+            {
+              "text": "ustaw łopatkę na 40 stopni",
+              "reason": "Brak wskazania łopatki."
+            },
+            {
+              "text": "ustaw obie łopatki",
+              "reason": "Brak kąta."
+            },
+            {
+              "text": "ustaw pierwszą łopatkę na 180 stopni",
+              "reason": "Kąt poza zakresem 1–160°."
+            }
+          ],
+          "executable": true
+        },
+        {
+          "name": "move_polarization",
+          "description": "Przesunięcie względem odczytanej pozycji; ujemna delta cofa. Kontroler ogranicza wynik do 1–160°. both wykonuje kolejno 1 i 2.",
+          "arguments": {
+            "paddle": {
+              "type": [
+                "integer",
+                "string"
+              ],
+              "description": "łopatkę 1, 2 lub obie",
+              "unit": null,
+              "required": true,
+              "missing_error": "Podaj: łopatkę 1, 2 lub obie.",
+              "choices": [
+                1,
+                2,
+                "both"
+              ]
+            },
+            "delta_deg": {
+              "type": "number",
+              "description": "wielkość przesunięcia",
+              "unit": "°",
+              "required": true,
+              "missing_error": "Podaj: wielkość przesunięcia."
+            }
+          },
+          "examples": [
+            "przesuń pierwszą łopatkę o 1 stopień",
+            "rusz drugą o 5 stopni",
+            "cofnij pierwszą o 2 stopnie",
+            "przesuń obie łopatki o 3 stopnie",
+            "obie łopatki przesuń o 5 stopni"
+          ],
+          "invalid_examples": [
+            {
+              "text": "przesuń pierwszą łopatkę",
+              "reason": "Brak przesunięcia."
+            },
+            {
+              "text": "przesuń łopatkę o 5 stopni",
+              "reason": "Brak wskazania łopatki."
+            },
+            {
+              "text": "przesuń obie łopatki",
+              "reason": "Brak przesunięcia."
+            }
+          ],
+          "executable": true
+        },
+        {
+          "name": "auto_polarization",
+          "description": "Algorytm GUI bez parametrów użytkownika. Wymaga MPC220, MDT694B, działającego ADS1263 i potwierdzonego wyłączenia grzałki lub odłączonego TC200. Algorytm steruje piezo 80–150 V, 20 V/s i obiema łopatkami. Adapter AI niedostępny.",
+          "arguments": {},
+          "examples": [
+            "uruchom automatyczną polaryzację"
+          ],
+          "invalid_examples": [],
+          "executable": false
+        }
+      ]
+    }
+  ],
+  "general_actions": [
+    {
+      "name": "start_measurement",
+      "description": "Rozpocznij akwizycję ADS1263 z kanałami GUI; nie nadpisuj aktywnego pomiaru.",
+      "arguments": {},
+      "examples": [
+        "rozpocznij pomiar"
+      ],
+      "invalid_examples": [],
+      "executable": true
+    },
+    {
+      "name": "stop_measurement",
+      "description": "Zatrzymaj ADS1263, zachowaj bufor.",
+      "arguments": {},
+      "examples": [
+        "zatrzymaj pomiar"
+      ],
+      "invalid_examples": [],
+      "executable": true
+    },
+    {
+      "name": "wait",
+      "description": "Tylko upływ czasu, nigdy wykrywanie stabilizacji.",
+      "arguments": {
+        "seconds": {
+          "type": "number",
+          "description": "czas oczekiwania",
+          "unit": "s",
+          "required": true,
+          "missing_error": "Podaj: czas oczekiwania.",
+          "minimum": 0,
+          "maximum": 3600
+        }
+      },
+      "examples": [
+        "poczekaj 5 sekund",
+        "odczekaj 10 sekund",
+        "czekaj przez 30 sekund"
+      ],
+      "invalid_examples": [
+        {
+          "text": "poczekaj",
+          "reason": "Brak czasu."
+        }
+      ],
+      "executable": true
+    }
+  ]
+}

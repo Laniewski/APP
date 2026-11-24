@@ -44,6 +44,7 @@ class ScriptBuilder:
         validation = ValidationResult(
             tuple(dict.fromkeys(checked.errors + (validation.errors if validation else ()))),
             tuple(dict.fromkeys(checked.missing_parameters + (validation.missing_parameters if validation else ()))),
+            checked.response_type,
         )
         result_metrics = dict(metrics or {})
         for key in ("elapsed_s", "completion_tokens", "tokens_per_s"):

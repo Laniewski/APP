@@ -70,32 +70,30 @@ class ActionSpec:
         return argument.question
 
 
-# Keep these limits aligned with the existing TC200 and MPC220 drivers. They are
-# repeated here to keep the planning contract importable without pyserial/Qt.
+# Semantic data and bounds live exclusively in ai_context.
+from .prompt_loader import load_json
+
+# Code-owned allowlist: editing context files cannot grant execution capabilities.
+EXECUTABLE_ACTIONS = frozenset({
+    "set_temperature", "heater_on", "heater_off", "set_piezo_voltage",
+    "set_polarization_angle", "move_polarization", "start_measurement",
+    "stop_measurement", "wait",
+})
+
+
+def action_definitions():
+    station = load_json("station_and_actions.json")
+    actions = [a for device in station["devices"] for a in device["actions"]]
+    actions += station["general_actions"]
+    return {a["name"]: a for a in actions}
+
+
 ACTION_REGISTRY = {
-    spec.name: spec for spec in (
-        ActionSpec("set_temperature", "Ustaw temperaturę zadaną TC200; nie włącza grzałki ani nie czeka na stabilizację.", {
-            "value_c": ArgumentSpec("number", "Temperatura zadana", 20.0, 200.0,
-                                    unit="°C", aliases=("temperatura",), question="Podaj temperaturę zadaną."),
-        }, aliases=("temperatura", "temperatura zadana")),
-        ActionSpec("set_piezo_voltage", "Ustaw napięcie piezo MDT694B; zakres sprawdza istniejący sterownik.", {
-            "value_v": ArgumentSpec("number", "Napięcie piezo", unit="V", aliases=("napięcie",),
-                                    question="Podaj napięcie piezo."),
-        }, aliases=("piezo", "płytka piezo", "napięcie piezo", "kontroler piezo")),
-        ActionSpec("set_polarization_angle", "Ustaw kąt jednej łopatki MPC220 i poczekaj na zakończenie ruchu.", {
-            "paddle": ArgumentSpec("integer", "Numer łopatki", choices=(1, 2),
-                                   choice_aliases={1: ("pierwsza", "pierwszy"), 2: ("druga", "drugi")},
-                                   question="Podaj numer łopatki."),
-            "angle_deg": ArgumentSpec("number", "Kąt łopatki", 1.0, 160.0,
-                                      unit="stopnie", aliases=("kąt",), question="Podaj kąt łopatki.",
-                                      question_variants={"paddle": {1: "Podaj kąt pierwszej łopatki.",
-                                                                   2: "Podaj kąt drugiej łopatki."}}),
-        }, aliases=("łopatka", "łopatka polaryzacji", "nastawnik polaryzacji", "polaryzacja")),
-        ActionSpec("start_measurement", "Rozpocznij ADS1263 z kanałami wybranymi w GUI.", aliases=("rozpocznij pomiar",)),
-        ActionSpec("stop_measurement", "Zatrzymaj ADS1263; dane pozostają w buforze.", aliases=("zatrzymaj pomiar",)),
-        ActionSpec("wait", "Poczekaj podaną liczbę sekund; nie jest to detekcja stabilizacji.", {
-            "seconds": ArgumentSpec("number", "Czas oczekiwania", 0, 3600, unit="s", aliases=("sekundy",),
-                                    question="Podaj czas oczekiwania w sekundach."),
-        }, aliases=("poczekaj", "odczekaj")),
-    )
+    name: ActionSpec(name, action["description"], {
+        key: ArgumentSpec(kind=arg["type"], description=arg["description"],
+                          minimum=arg.get("minimum"), maximum=arg.get("maximum"),
+                          choices=tuple(arg.get("choices", [])), required=arg["required"],
+                          nullable=False, unit=arg.get("unit"), question=arg["missing_error"])
+        for key, arg in action["arguments"].items()
+    }) for name, action in action_definitions().items()
 }

@@ -37,7 +37,8 @@ class MPC220ControllerTests(unittest.TestCase):
 
     def test_connect_publishes_both_positions_and_adjust_reads_driver(self):
         worker = MPC220Worker(FakeDriver)
-        positions, busy = [], []
+        positions, busy, completed = [], [], []
+        worker.angle_set.connect(lambda p, a: completed.append((p, a)))
         worker.position_updated.connect(lambda p, a: positions.append((p, a)))
         worker.busy_changed.connect(busy.append)
         worker.connect_device("COM1")
@@ -46,6 +47,7 @@ class MPC220ControllerTests(unittest.TestCase):
         worker.adjust_angle(1, 10)
         self.assertEqual(worker._driver.moves[-1], (1, 1339))
         self.assertEqual(busy[-1], False)
+        self.assertEqual(completed, [positions[-1]])
 
     def test_port_conflict_disconnect_release_and_shutdown(self):
         manager = PortManager(lambda: [])

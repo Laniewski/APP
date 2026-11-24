@@ -1,4 +1,4 @@
-"""Lokalny llama-server: lazy loading, JSON i jedna próba naprawy formatu."""
+"""Local llama-server transport; model messages in, parsed JSON out."""
 
 import http.client
 import json
@@ -8,8 +8,8 @@ import subprocess
 import threading
 import time
 
-from .context_builder import system_prompt, extraction_schema
-from .grounding import segments, grounded_plan
+from .prompt_loader import load_messages
+from .plan_schema import response_schema
 from .config import AssistantConfig
 from .plan_schema import parse_response
 
@@ -28,7 +28,7 @@ class LLMBackend:
         self._cancelled = threading.Event()
         self.last_metrics = {}
         self.last_raw_response = None
-        self.last_model_extraction = []
+        self.last_messages = []
 
     def _request(self, method, path, payload=None, timeout=None):
         if self._cancelled.is_set():
@@ -110,90 +110,48 @@ class LLMBackend:
 
     def generate(self, request, status=lambda message: None, stop_event=None):
         self.last_raw_response = None
-        self.last_model_extraction = []
+        self.last_messages = []
         self.last_metrics = {}
         if self._closed.is_set():
             raise RuntimeError("Backend asystenta został zamknięty.")
-        if not isinstance(request, str) or not request.strip() or len(request) > 4000:
-            raise ValueError("Opis musi zawierać od 1 do 4000 znaków.")
+        messages = load_messages(request) if isinstance(request, str) else request
+        if not isinstance(messages, list) or not messages:
+            raise ValueError("Wymagane messages z prompt_loader.")
         self._cancelled.clear()
         if stop_event is not None and stop_event.is_set():
             self._cancelled.set()
             raise RuntimeError("Generowanie anulowane.")
         self.ensure_ready(status)
-        status("Generowanie planu...")
-        logger.info("Rozpoczęcie generowania planu.")
-        fragments = segments(request)
-        if len(fragments) > 50:
-            raise ValueError("Za dużo czynności; podziel polecenie (maksymalnie 50 fragmentów).")
+        status("Generowanie odpowiedzi...")
+        logger.info("Rozpoczęcie generowania odpowiedzi.")
+        self.last_messages = messages
+        payload = {"messages": messages, "temperature": 0.0, "max_tokens": 2048,
+                   "response_format": {"type": "json_object"},
+                   "chat_template_kwargs": {"enable_thinking": False}}
+        if self.config.schema_in_response_format:
+            payload["response_format"]["schema"] = response_schema()
+        else:
+            payload["json_schema"] = response_schema()
+        if self.config.debug_io:
+            self.config.runs_dir.mkdir(parents=True, exist_ok=True)
+            (self.config.runs_dir / "last_model_input.txt").write_text(
+                json.dumps(messages, ensure_ascii=False, indent=2), encoding="utf-8")
         started = time.monotonic()
-        raw_responses, extracted, usages = [], [], []
-        for offset in range(0, len(fragments), 3):
-            if self._cancelled.is_set() or (stop_event is not None and stop_event.is_set()):
-                raise RuntimeError("Generowanie anulowane.")
-            status(f"Ekstrakcja fragmentów {offset + 1}–{min(offset + 3, len(fragments))}/{len(fragments)}...")
-            batch = [{"id": i, "text": fragments[i][2]} for i in range(offset, min(offset + 3, len(fragments)))]
-            if sum(len(item["text"]) for item in batch) > 1000:
-                raise ValueError("Fragment polecenia jest za długi dla kontekstu modelu; podziel opis.")
-            messages = [{"role": "system", "content": system_prompt()},
-                        {"role": "user", "content": json.dumps(batch, ensure_ascii=False)}]
-            for attempt in range(2):
-                payload = {"messages": messages, "temperature": 0.0, "max_tokens": 400,
-                           "response_format": {"type": "json_object"},
-                           "chat_template_kwargs": {"enable_thinking": False}}
-                if self.config.schema_in_response_format:
-                    payload["response_format"]["schema"] = extraction_schema([item["id"] for item in batch])
-                else:
-                    payload["json_schema"] = extraction_schema([item["id"] for item in batch])
-                response = self._request("POST", "/v1/chat/completions", payload)
-                if self._cancelled.is_set() or (stop_event is not None and stop_event.is_set()):
-                    raise RuntimeError("Generowanie anulowane.")
-                usage = response.get("usage", {})
-                usages.append({**usage, "timings": response.get("timings", {})})
-                self.last_metrics = {"elapsed_s": time.monotonic() - started,
-                                     "completion_tokens": sum(u.get("completion_tokens", 0) for u in usages),
-                                     "prompt_tokens": sum(u.get("prompt_tokens", 0) for u in usages),
-                                     "requests": len(usages), "usage_by_request": usages}
-                try:
-                    text = response["choices"][0]["message"]["content"]
-                    raw_responses.append(text)
-                    self.last_raw_response = json.dumps(raw_responses, ensure_ascii=False)
-                    parsed = parse_response(text)
-                    rows = parsed.get("steps")
-                    if set(parsed) != {"steps"} or not isinstance(rows, list):
-                        raise ValueError("Wymagane steps.")
-                    ids = {item["id"] for item in batch}
-                    for row in rows:
-                        if (not isinstance(row, dict) or set(row) != {"id", "action", "args"}
-                            or type(row["id"]) is not int or row["id"] not in ids
-                            or not isinstance(row["action"], str) or not isinstance(row["args"], dict)):
-                            raise ValueError("Nieprawidłowy krok ekstrakcji.")
-                    if response["choices"][0].get("finish_reason") == "length":
-                        raise ValueError("Odpowiedź obcięta.")
-                    extracted.extend(rows)
-                    self.last_model_extraction = list(extracted)
-                    break
-                except (KeyError, IndexError, TypeError, ValueError) as exc:
-                    if attempt:
-                        raise ValueError(f"Model dwukrotnie zwrócił błędną ekstrakcję: {exc}") from exc
-                    messages.append({"role": "user", "content": "Zwróć poprawny JSON steps z id każdego fragmentu."})
-        plan = grounded_plan(request)
-        expected = []
-        for i, (start, end, _) in enumerate(fragments):
-            expected.extend({"id": i, "action": step["action"], "args": step["args"]}
-                            for step in plan["steps"] if step["source"] == [start, end])
-        if extracted != expected:
-            plan["notes"].append("Ekstrakcja modelu różniła się od interpretacji źródła. Plan wyznaczono ograniczoną gramatyką; nierozpoznane fragmenty zablokowano.")
+        response = self._request("POST", "/v1/chat/completions", payload)
+        choice = response["choices"][0]
+        text = choice["message"]["content"]
+        self.last_raw_response = text
+        if self.config.debug_io:
+            (self.config.runs_dir / "last_model_response.json").write_text(text, encoding="utf-8")
         elapsed = time.monotonic() - started
-        tokens = sum(u.get("completion_tokens", 0) for u in usages)
-        predicted_ms = sum(u.get("timings", {}).get("predicted_ms", 0) for u in usages)
-        self.last_metrics = {"elapsed_s": elapsed, "completion_tokens": tokens,
-                             "prompt_tokens": sum(u.get("prompt_tokens", 0) for u in usages),
-                             "tokens_per_s": tokens * 1000 / predicted_ms if predicted_ms else tokens / elapsed,
-                             "end_to_end_tokens_per_s": tokens / elapsed,
-                             "requests": len(usages), "usage_by_request": usages,
-                             "extracted_steps": extracted, "model_agrees": extracted == expected}
-        return plan
+        usage = response.get("usage", {})
+        self.last_metrics = {**usage, "elapsed_s": elapsed, "requests": 1,
+                             "tokens_per_s": usage.get("completion_tokens", 0) / max(elapsed, 1e-9)}
+        if self._cancelled.is_set() or (stop_event is not None and stop_event.is_set()):
+            raise RuntimeError("Generowanie anulowane.")
+        if choice.get("finish_reason") == "length":
+            raise ValueError("Odpowiedź modelu została obcięta; skróć polecenie lub materiały.")
+        return parse_response(text)
 
     def cancel(self):
         self._cancelled.set()

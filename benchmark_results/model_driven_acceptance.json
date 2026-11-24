@@ -1,0 +1,585 @@
+{
+  "date": "2026-11-24",
+  "model": "Qwen3.5-2B Q4_K_M",
+  "runtime": {
+    "context_size": 16384,
+    "threads": 3,
+    "reasoning": false,
+    "temperature": 0,
+    "max_tokens": 2048,
+    "hardware_execution": false
+  },
+  "context_sha256": {
+    "ai_context/assistant_prompt.txt": "49e13d46456dc5c562e5a84807e51d95dd8922899232142e7fb9ab0e54b3ccb4",
+    "ai_context/output_schema.json": "ef6582a278e75970051a4ce42d4e1ec872e4a5bb1d13ee69aa79ffa3e4c07ad8",
+    "ai_context/station_and_actions.json": "1089051c97fe0ca92c3fc0cc57cb998e13fa9ecd58d03ad54dde4aaaf90d7bb9"
+  },
+  "summary": {
+    "passed": 12,
+    "total": 16,
+    "acceptance_status": "failed",
+    "unit_tests_passed": 124
+  },
+  "limitations": [
+    "The theoretical-question case checks type=answer only; its generated explanation is factually incorrect.",
+    "The technical validator cannot detect a semantically wrong but well-typed action or guessed argument.",
+    "Do not interpret mocked transport tests as language understanding tests."
+  ],
+  "tests": [
+    {
+      "request": "ustaw temperaturę na 30 stopni",
+      "result": {
+        "type": "procedure",
+        "answer": "",
+        "steps": [
+          {
+            "action": "set_temperature",
+            "args": {
+              "value_c": 30
+            }
+          }
+        ]
+      },
+      "passed": true,
+      "metrics": {
+        "completion_tokens": 60,
+        "prompt_tokens": 4006,
+        "total_tokens": 4066,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "elapsed_s": 194.30798757500042,
+        "requests": 1,
+        "tokens_per_s": 0.3087881293446095
+      },
+      "expected": {
+        "type": "procedure",
+        "steps": [
+          {
+            "action": "set_temperature",
+            "args": {
+              "value_c": 30
+            }
+          }
+        ]
+      },
+      "structurally_valid": true
+    },
+    {
+      "request": "ustaw temperaturę",
+      "result": {
+        "type": "error",
+        "message": "Podaj wartość temperatury.",
+        "steps": []
+      },
+      "passed": true,
+      "metrics": {
+        "completion_tokens": 30,
+        "prompt_tokens": 4000,
+        "total_tokens": 4030,
+        "prompt_tokens_details": {
+          "cached_tokens": 3984
+        },
+        "elapsed_s": 7.120632145999934,
+        "requests": 1,
+        "tokens_per_s": 4.213109087070691
+      },
+      "expected": {
+        "type": "error"
+      },
+      "structurally_valid": true
+    },
+    {
+      "request": "ustaw pierwszą łopatkę na 40 stopni",
+      "result": {
+        "type": "procedure",
+        "answer": "",
+        "steps": [
+          {
+            "action": "set_polarization_angle",
+            "args": {
+              "paddle": 1,
+              "angle_deg": 40
+            }
+          }
+        ]
+      },
+      "passed": true,
+      "metrics": {
+        "completion_tokens": 72,
+        "prompt_tokens": 4010,
+        "total_tokens": 4082,
+        "prompt_tokens_details": {
+          "cached_tokens": 3984
+        },
+        "elapsed_s": 17.02648461300032,
+        "requests": 1,
+        "tokens_per_s": 4.228706138495874
+      },
+      "expected": {
+        "type": "procedure",
+        "steps": [
+          {
+            "action": "set_polarization_angle",
+            "args": {
+              "paddle": 1,
+              "angle_deg": 40
+            }
+          }
+        ]
+      },
+      "structurally_valid": true
+    },
+    {
+      "request": "ustaw pierwszą łopatkę",
+      "result": {
+        "type": "error",
+        "message": "Podaj kąt łopatki.",
+        "steps": []
+      },
+      "passed": true,
+      "metrics": {
+        "completion_tokens": 32,
+        "prompt_tokens": 4004,
+        "total_tokens": 4036,
+        "prompt_tokens_details": {
+          "cached_tokens": 3984
+        },
+        "elapsed_s": 8.529828175999683,
+        "requests": 1,
+        "tokens_per_s": 3.751540985319983
+      },
+      "expected": {
+        "type": "error"
+      },
+      "structurally_valid": true
+    },
+    {
+      "request": "ustaw łopatkę na 40 stopni",
+      "result": {
+        "type": "procedure",
+        "answer": "",
+        "steps": [
+          {
+            "action": "set_polarization_angle",
+            "args": {
+              "paddle": "both",
+              "angle_deg": 40
+            }
+          }
+        ]
+      },
+      "passed": false,
+      "metrics": {
+        "completion_tokens": 72,
+        "prompt_tokens": 4008,
+        "total_tokens": 4080,
+        "prompt_tokens_details": {
+          "cached_tokens": 3984
+        },
+        "elapsed_s": 16.8197796190002,
+        "requests": 1,
+        "tokens_per_s": 4.280674398293918
+      },
+      "expected": {
+        "type": "error"
+      },
+      "structurally_valid": true
+    },
+    {
+      "request": "ustaw obie łopatki na 100 stopni",
+      "result": {
+        "type": "procedure",
+        "answer": "",
+        "steps": [
+          {
+            "action": "set_polarization_angle",
+            "args": {
+              "paddle": "both",
+              "angle_deg": 100
+            }
+          }
+        ]
+      },
+      "passed": true,
+      "metrics": {
+        "completion_tokens": 73,
+        "prompt_tokens": 4009,
+        "total_tokens": 4082,
+        "prompt_tokens_details": {
+          "cached_tokens": 3984
+        },
+        "elapsed_s": 17.542504411999744,
+        "requests": 1,
+        "tokens_per_s": 4.161321455907129
+      },
+      "expected": {
+        "type": "procedure",
+        "steps": [
+          {
+            "action": "set_polarization_angle",
+            "args": {
+              "paddle": "both",
+              "angle_deg": 100
+            }
+          }
+        ]
+      },
+      "structurally_valid": true
+    },
+    {
+      "request": "przesuń obie łopatki o 5 stopni",
+      "result": {
+        "type": "procedure",
+        "answer": "",
+        "steps": [
+          {
+            "action": "move_polarization",
+            "args": {
+              "paddle": "both",
+              "delta_deg": 5
+            }
+          }
+        ]
+      },
+      "passed": true,
+      "metrics": {
+        "completion_tokens": 70,
+        "prompt_tokens": 4009,
+        "total_tokens": 4079,
+        "prompt_tokens_details": {
+          "cached_tokens": 3984
+        },
+        "elapsed_s": 16.960674641999958,
+        "requests": 1,
+        "tokens_per_s": 4.127194317297851
+      },
+      "expected": {
+        "type": "procedure",
+        "steps": [
+          {
+            "action": "move_polarization",
+            "args": {
+              "paddle": "both",
+              "delta_deg": 5
+            }
+          }
+        ]
+      },
+      "structurally_valid": true
+    },
+    {
+      "request": "ustaw piezo na 20 V",
+      "result": {
+        "type": "procedure",
+        "answer": "",
+        "steps": [
+          {
+            "action": "set_piezo_voltage",
+            "args": {
+              "value_v": 20
+            }
+          }
+        ]
+      },
+      "passed": true,
+      "metrics": {
+        "completion_tokens": 63,
+        "prompt_tokens": 4005,
+        "total_tokens": 4068,
+        "prompt_tokens_details": {
+          "cached_tokens": 3984
+        },
+        "elapsed_s": 15.134912777000409,
+        "requests": 1,
+        "tokens_per_s": 4.162561154348851
+      },
+      "expected": {
+        "type": "procedure",
+        "steps": [
+          {
+            "action": "set_piezo_voltage",
+            "args": {
+              "value_v": 20
+            }
+          }
+        ]
+      },
+      "structurally_valid": true
+    },
+    {
+      "request": "ustaw piezo",
+      "result": {
+        "type": "error",
+        "message": "Podaj wartość napięcia piezo.",
+        "steps": []
+      },
+      "passed": true,
+      "metrics": {
+        "completion_tokens": 32,
+        "prompt_tokens": 4000,
+        "total_tokens": 4032,
+        "prompt_tokens_details": {
+          "cached_tokens": 3984
+        },
+        "elapsed_s": 7.7636770199997045,
+        "requests": 1,
+        "tokens_per_s": 4.121758274792479
+      },
+      "expected": {
+        "type": "error"
+      },
+      "structurally_valid": true
+    },
+    {
+      "request": "odpal grzanie",
+      "result": {
+        "type": "procedure",
+        "answer": "",
+        "steps": [
+          {
+            "action": "heater_on",
+            "args": {}
+          }
+        ]
+      },
+      "passed": true,
+      "metrics": {
+        "completion_tokens": 48,
+        "prompt_tokens": 4001,
+        "total_tokens": 4049,
+        "prompt_tokens_details": {
+          "cached_tokens": 3984
+        },
+        "elapsed_s": 11.630394683999839,
+        "requests": 1,
+        "tokens_per_s": 4.127117032927054
+      },
+      "expected": {
+        "type": "procedure",
+        "steps": [
+          {
+            "action": "heater_on",
+            "args": {}
+          }
+        ]
+      },
+      "structurally_valid": true
+    },
+    {
+      "request": "po co zmieniamy polaryzację w tym ćwiczeniu?",
+      "result": {
+        "type": "answer",
+        "answer": "Polaryzacja jest stosowana w tym ćwiczeniu, aby generować stałe napięcie na element piezoelektryczny (piezo). Napięcie to jest kluczowe dla pomiaru odkształcenia światłowodu, ponieważ piezo reaguje na napięcie, zmieniając jego długość. Wymiar ten jest następnie pomierzony przez akwizycję ADS1263, co pozwala na obliczenie stałej prędkości (k) używanej w urządzeniu grzałki TC200. Bez odpowiedniej polaryzacji piezo nie da się uzyskać stałego napięcia, co uniemożliwia precyzyjny pomiar.",
+        "steps": []
+      },
+      "passed": true,
+      "metrics": {
+        "completion_tokens": 161,
+        "prompt_tokens": 4010,
+        "total_tokens": 4171,
+        "prompt_tokens_details": {
+          "cached_tokens": 3984
+        },
+        "elapsed_s": 37.32416232800006,
+        "requests": 1,
+        "tokens_per_s": 4.313559634243153
+      },
+      "expected": {
+        "type": "answer"
+      },
+      "structurally_valid": true
+    },
+    {
+      "request": "daj pierwszą na 35 stopni",
+      "result": {
+        "type": "procedure",
+        "answer": "",
+        "steps": [
+          {
+            "action": "set_polarization_angle",
+            "args": {
+              "paddle": "both",
+              "angle_deg": 35
+            }
+          }
+        ]
+      },
+      "passed": false,
+      "metrics": {
+        "completion_tokens": 72,
+        "prompt_tokens": 4006,
+        "total_tokens": 4078,
+        "prompt_tokens_details": {
+          "cached_tokens": 3984
+        },
+        "elapsed_s": 17.14879844799998,
+        "requests": 1,
+        "tokens_per_s": 4.1985448845482916
+      },
+      "expected": {
+        "type": "procedure",
+        "steps": [
+          {
+            "action": "set_polarization_angle",
+            "args": {
+              "paddle": 1,
+              "angle_deg": 35
+            }
+          }
+        ]
+      },
+      "structurally_valid": true
+    },
+    {
+      "request": "drugą przestaw o trzy stopnie",
+      "result": {
+        "type": "procedure",
+        "answer": "",
+        "steps": [
+          {
+            "action": "move_polarization",
+            "args": {
+              "paddle": "both",
+              "delta_deg": 3
+            }
+          }
+        ]
+      },
+      "passed": false,
+      "metrics": {
+        "completion_tokens": 70,
+        "prompt_tokens": 4005,
+        "total_tokens": 4075,
+        "prompt_tokens_details": {
+          "cached_tokens": 3984
+        },
+        "elapsed_s": 17.085534046999783,
+        "requests": 1,
+        "tokens_per_s": 4.097033186521435
+      },
+      "expected": {
+        "type": "procedure",
+        "steps": [
+          {
+            "action": "move_polarization",
+            "args": {
+              "paddle": 2,
+              "delta_deg": 3
+            }
+          }
+        ]
+      },
+      "structurally_valid": true
+    },
+    {
+      "request": "zacznij zbierać dane",
+      "result": {
+        "type": "procedure",
+        "answer": "",
+        "steps": [
+          {
+            "action": "start_measurement",
+            "args": {}
+          }
+        ]
+      },
+      "passed": true,
+      "metrics": {
+        "completion_tokens": 48,
+        "prompt_tokens": 4002,
+        "total_tokens": 4050,
+        "prompt_tokens_details": {
+          "cached_tokens": 3984
+        },
+        "elapsed_s": 11.63906241199993,
+        "requests": 1,
+        "tokens_per_s": 4.124043526952116
+      },
+      "expected": {
+        "type": "procedure",
+        "steps": [
+          {
+            "action": "start_measurement",
+            "args": {}
+          }
+        ]
+      },
+      "structurally_valid": true
+    },
+    {
+      "request": "puść grzanie",
+      "result": {
+        "type": "procedure",
+        "answer": "",
+        "steps": [
+          {
+            "action": "heater_off",
+            "args": {}
+          }
+        ]
+      },
+      "passed": false,
+      "metrics": {
+        "completion_tokens": 48,
+        "prompt_tokens": 4001,
+        "total_tokens": 4049,
+        "prompt_tokens_details": {
+          "cached_tokens": 3984
+        },
+        "elapsed_s": 11.592550761999973,
+        "requests": 1,
+        "tokens_per_s": 4.140590020734913
+      },
+      "expected": {
+        "type": "procedure",
+        "steps": [
+          {
+            "action": "heater_on",
+            "args": {}
+          }
+        ]
+      },
+      "structurally_valid": true
+    },
+    {
+      "request": "daj dwadzieścia volt na piezo",
+      "result": {
+        "type": "procedure",
+        "answer": "",
+        "steps": [
+          {
+            "action": "set_piezo_voltage",
+            "args": {
+              "value_v": 20
+            }
+          }
+        ]
+      },
+      "passed": true,
+      "metrics": {
+        "completion_tokens": 63,
+        "prompt_tokens": 4006,
+        "total_tokens": 4069,
+        "prompt_tokens_details": {
+          "cached_tokens": 3984
+        },
+        "elapsed_s": 15.287317667000025,
+        "requests": 1,
+        "tokens_per_s": 4.121063051891372
+      },
+      "expected": {
+        "type": "procedure",
+        "steps": [
+          {
+            "action": "set_piezo_voltage",
+            "args": {
+              "value_v": 20
+            }
+          }
+        ]
+      },
+      "structurally_valid": true
+    }
+  ]
+}

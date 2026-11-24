@@ -41,7 +41,7 @@ class MeasurementAssistantPanel(QWidget):
         self.request_input.setPlaceholderText("Opisz pomiar, który chcesz przeprowadzić...")
         self.request_input.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         layout.addWidget(self.request_input, 1)
-        self.generate_button = QPushButton("Utwórz plan")
+        self.generate_button = QPushButton("Zapytaj / utwórz plan")
         layout.addWidget(self.generate_button)
         self.status_label = QLabel("Model niezaładowany")
         self.status_label.setWordWrap(True)
@@ -99,12 +99,13 @@ class MeasurementAssistantPanel(QWidget):
         self._json_text = json.dumps(plan, ensure_ascii=False, indent=2) if isinstance(plan, dict) else (raw_response or "null")
         self.copy_button.setEnabled(True)
         self.result_label.setText("Plan odrzucony" if validation.errors else
-                                  "Plan z brakami" if validation.missing_parameters else "Poprawny plan")
-        lines = [str(plan.get("title", "Plan"))] if isinstance(plan, dict) else []
+                                  "Plan z brakami" if validation.missing_parameters else "Odpowiedź" if plan.get("type") == "answer" else
+                                  "Niekompletne polecenie" if plan.get("type") == "error" else "Poprawny plan")
+        lines = [str(plan.get("answer") or plan.get("message") or "Procedura")] if isinstance(plan, dict) else []
         steps = plan.get("steps", []) if isinstance(plan, dict) else []
         for number, step in enumerate(steps if isinstance(steps, list) else [], 1):
             if isinstance(step, dict):
-                lines.append(f"{number}. {step.get('description', '')}")
+                lines.append(f"{number}. {step.get('action', '')} {json.dumps(step.get('args', {}), ensure_ascii=False)}")
         if validation.missing_parameters:
             lines.append("\nBrakujące informacje:\n" + "\n".join(validation.missing_parameters))
         if validation.errors:

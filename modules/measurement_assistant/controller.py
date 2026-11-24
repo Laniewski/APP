@@ -8,6 +8,7 @@ from PySide6.QtCore import QObject, QThread, Qt, Signal, Slot
 
 from .actions import MeasurementActions
 from .backend import LLMBackend
+from .prompt_loader import load_messages
 from .plan_schema import PlanValidator, ValidationResult
 from .runner import Runner
 from .script_builder import ScriptBuilder
@@ -30,7 +31,7 @@ class _AssistantWorker(QObject):
         try:
             if self.stop_event.is_set():
                 raise RuntimeError("Generowanie anulowane.")
-            self.generated.emit(self.backend.generate(request, self.status.emit, stop_event=self.stop_event))
+            self.generated.emit(self.backend.generate(load_messages(request), self.status.emit, stop_event=self.stop_event))
         except Exception as exc:
             logger.exception("Błąd modelu lokalnego")
             self.error.emit(str(exc))
@@ -112,7 +113,7 @@ class MeasurementAssistantController(QObject):
         self._busy = False
         validation = PlanValidator().validate(plan, self._request)
         if self.stop_event.is_set():
-            validation = ValidationResult(("Generowanie anulowane.",), validation.missing_parameters)
+            validation = ValidationResult(("Generowanie anulowane.",), validation.missing_parameters, plan.get("type"))
         if validation.missing_parameters and isinstance(plan.get("missing_parameters"), list):
             plan = copy.deepcopy(plan)
             plan["missing_parameters"] = list(validation.missing_parameters)
@@ -131,7 +132,11 @@ class MeasurementAssistantController(QObject):
                 logger.warning("Plan odrzucony: %s", validation.errors)
             if validation.runnable and self.backend.config.execution_enabled:
                 logger.info("Zaakceptowano plan; wygenerowano script.py.")
-            self.panel.status_label.setText("Plan gotowy — sprawdź kroki przed rozpoczęciem." if validation.runnable else "Plan wymaga uzupełnienia lub korekty.")
+            self.panel.status_label.setText(
+                "Odpowiedź gotowa." if not validation.errors and plan.get("type") == "answer" else
+                "Uzupełnij polecenie." if not validation.errors and plan.get("type") == "error" else
+                "Plan gotowy — sprawdź kroki przed rozpoczęciem." if validation.runnable else
+                "Plan wymaga uzupełnienia lub korekty.")
             self.panel.set_busy(False, validation.runnable)
         except Exception as exc:
             self._on_error(str(exc))

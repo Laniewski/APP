@@ -11,9 +11,9 @@ $safeThreads = [Math]::Max(1, [Math]::Min(4, [Math]::Floor($logicalCpu / 2)))
 $env:APP_AI_BINARY = if ($server) { $server.FullName } else { Join-Path $llamaRoot "llama-server.exe" }
 $env:APP_AI_MODEL = $model
 $env:APP_AI_PORT = "8080"
-$env:APP_AI_CONTEXT = "2048"
+$env:APP_AI_CONTEXT = "16384"
 $env:APP_AI_THREADS = "$safeThreads"
-$env:APP_AI_TIMEOUT = "120"
+$env:APP_AI_TIMEOUT = "300"
 $env:APP_AI_EXECUTION_ENABLED = "0"
 $env:APP_AI_SCHEMA_FORMAT = "nested"
 

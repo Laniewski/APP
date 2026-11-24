@@ -84,8 +84,19 @@ class MeasurementActions(QObject):
     def set_piezo_voltage(self, value_v):
         self._invoke("set_piezo_voltage", value_v=value_v)
 
+    def heater_on(self):
+        self._invoke("heater_on")
+
+    def heater_off(self):
+        self._invoke("heater_off")
+
     def set_polarization_angle(self, paddle, angle_deg):
-        self._invoke("set_polarization_angle", paddle=paddle, angle_deg=angle_deg)
+        for selected in ((1, 2) if paddle == "both" else (paddle,)):
+            self._invoke("set_polarization_angle", paddle=selected, angle_deg=angle_deg)
+
+    def move_polarization(self, paddle, delta_deg):
+        for selected in ((1, 2) if paddle == "both" else (paddle,)):
+            self._invoke("move_polarization", paddle=selected, delta_deg=delta_deg)
 
     def start_measurement(self):
         self._invoke("start_measurement")
@@ -118,6 +129,14 @@ class MeasurementActions(QObject):
                 if not self.tc200.is_connected():
                     raise RuntimeError("TC200 odłączony.")
                 self.tc200.set_temperature(request.args["value_c"])
+            elif request.name in {"heater_on", "heater_off"}:
+                if not self.tc200.is_connected():
+                    raise RuntimeError("TC200 odłączony.")
+                self.tc200.set_heater(request.name == "heater_on")
+            elif request.name == "move_polarization":
+                if not self.mpc220.is_connected():
+                    raise RuntimeError("MPC220 odłączony.")
+                self.mpc220.adjust_angle(request.args["paddle"], request.args["delta_deg"])
             elif request.name == "set_piezo_voltage":
                 if not self.mdt694b.is_connected():
                     raise RuntimeError("MDT694B odłączony.")
@@ -149,7 +168,8 @@ class MeasurementActions(QObject):
 
     @Slot(str)
     def _temperature_done(self, message):
-        if self._pending and self._pending.name == "set_temperature" and message == "Temperatura ustawiona":
+        if (self._pending and ((self._pending.name == "set_temperature" and message == "Temperatura ustawiona")
+                or (self._pending.name in {"heater_on", "heater_off"} and message == "Stan grzania zmieniony"))):
             self._finish()
 
     @Slot(float)
@@ -159,7 +179,7 @@ class MeasurementActions(QObject):
 
     @Slot(int, float)
     def _angle_done(self, paddle, _angle):
-        if self._pending and self._pending.name == "set_polarization_angle" and self._pending.args["paddle"] == paddle:
+        if self._pending and self._pending.name in {"set_polarization_angle", "move_polarization"} and self._pending.args["paddle"] == paddle:
             self._finish()
 
     @Slot()

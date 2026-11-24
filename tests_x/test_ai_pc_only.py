@@ -1,54 +1,60 @@
-"""Acceptance checks for the hardware-free Windows planning path."""
-
-import unittest
+"""Transport/contract tests use mocked model output, not a language parser."""
+import json
 import tempfile
+import unittest
 from pathlib import Path
-
+from unittest.mock import patch
+from modules.measurement_assistant.backend import LLMBackend
 from modules.measurement_assistant.config import AssistantConfig
-from modules.measurement_assistant.grounding import grounded_plan
+from modules.measurement_assistant.prompt_loader import load_messages, CONTEXT_DIR
 from modules.measurement_assistant.plan_schema import PlanValidator
-from tools.ai_plan_tester import save_result
-
-
-CASES = [
-    ("Ustaw piezo na 12 V.", "COMPLETE"),
-    ("Ustaw piezo.", "INCOMPLETE"),
-    ("Ustaw drugą łopatkę.", "INCOMPLETE"),
-    ("Ustaw drugą łopatkę na 30 stopni.", "COMPLETE"),
-    ("Ustaw temperaturę na 37 stopni i rozpocznij pomiar.", "COMPLETE"),
-    ("Włącz grzałkę.", "INVALID"),
-    ("wlacz grzalke", "INVALID"),
-    ("Zapisz plik.", "INVALID"),
-    ("Ustaw piezo na 50 V i włącz grzałkę.", "INVALID"),
-    ("Ustaw łopatkę 1, potem piezo na 50 V, potem łopatki na 100.", "INCOMPLETE"),
-    ("ustaw temerature na 20 stopni", "COMPLETE"),
-    ("zakoncz pomiar", "COMPLETE"),
-]
-
+from tests_x.assistant_model_cases import CASES, expected
 
 class PcOnlyTests(unittest.TestCase):
-    def test_requested_acceptance_cases(self):
-        for request, status in CASES:
-            with self.subTest(request=request):
-                plan = grounded_plan(request)
-                self.assertEqual(PlanValidator().validate(plan, request).status, status)
+ def test_all_requests_forwarded_intact_and_model_result_preserved(self):
+  for request, action, args in CASES:
+   with self.subTest(request=request):
+    output=expected(action,args)
+    backend=LLMBackend()
+    response={'choices':[{'message':{'content':json.dumps(output)}}]}
+    with patch.object(backend,'ensure_ready'), patch.object(backend,'_request',return_value=response) as call:
+     self.assertEqual(backend.generate(load_messages(request)),output)
+     self.assertEqual(call.call_args.args[2]['messages'][-1]['content'],request)
+    checked=PlanValidator().validate(output,request)
+    self.assertFalse(checked.errors)
+    self.assertEqual(checked.runnable,action not in {'answer','error'})
 
-    def test_execution_gate_is_disabled_by_default(self):
-        config = AssistantConfig.from_env()
-        self.assertFalse(config.execution_enabled)
+ def test_loader_order_sources_and_unsupported_files(self):
+  import shutil
+  with tempfile.TemporaryDirectory() as tmp:
+   root=Path(tmp)
+   for name in ('assistant_prompt.txt','station_and_actions.json','output_schema.json'):
+    shutil.copy(CONTEXT_DIR/name,root/name)
+   (root/'data').mkdir()
+   for name,content in [('b.txt','SECOND'),('a.md','FIRST'),('x.pdf','IGNORED'),('README.md','PLACEHOLDER')]:
+    (root/'data'/name).write_text(content)
+   text=load_messages('hello',root)[0]['content']
+   self.assertLess(text.index('SOURCE: a.md'),text.index('SOURCE: b.txt'))
+   self.assertIn('FIRST',text)
+   self.assertNotIn('IGNORED',text)
+   self.assertNotIn('PLACEHOLDER',text)
 
-    def test_result_bundle_contains_requested_files(self):
-        request = "Ustaw piezo na 12 V."
-        plan = grounded_plan(request)
-        validation = PlanValidator().validate(plan, request)
-        with tempfile.TemporaryDirectory() as root:
-            directory = save_result(Path(root), request, [(0, 19, "Ustaw piezo na 12 V")],
-                                    {"steps": []}, plan, {"requests": 1}, validation)
-            self.assertEqual({path.name for path in directory.iterdir()}, {
-                "request.txt", "segments.json", "model_extraction.json",
-                "final_plan.json", "metrics.json",
-            })
+ def test_debug_and_truncation(self):
+  with tempfile.TemporaryDirectory() as tmp:
+   backend=LLMBackend(AssistantConfig(debug_io=True,runs_dir=Path(tmp)))
+   raw=json.dumps(expected('answer',{}))
+   response={'choices':[{'message':{'content':raw},'finish_reason':'length'}]}
+   with patch.object(backend,'ensure_ready'), patch.object(backend,'_request',return_value=response):
+    with self.assertRaises(ValueError): backend.generate('pytanie')
+   self.assertEqual((Path(tmp)/'last_model_response.json').read_text(),raw)
+   self.assertEqual(json.loads((Path(tmp)/'last_model_input.txt').read_text())[-1]['content'],'pytanie')
 
+ def test_defaults_and_no_semantic_override(self):
+  self.assertFalse(AssistantConfig().execution_enabled)
+  self.assertFalse(AssistantConfig().debug_io)
+  # Structural validation cannot prove whether the model invented a supplied value.
+  self.assertTrue(PlanValidator().validate(expected('set_temperature',{'value_c':30}),'dowolna parafraza').runnable)
 
-if __name__ == "__main__":
-    unittest.main()
+ def test_paraphrases_not_in_context(self):
+  context=load_messages('test')[0]['content']
+  for request,_,_ in CASES[11:]: self.assertNotIn(request,context)

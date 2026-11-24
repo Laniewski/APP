@@ -85,10 +85,11 @@ class MPC220Worker(QObject):
         self.busy_changed.emit(True)
         try:
             current = self._read_angle(paddle_number)
-            self._move_to_angle(
+            actual = self._move_to_angle(
                 paddle_number, calculate_target_angle(current, delta_deg),
                 manage_busy=False,
             )
+            self.angle_set.emit(paddle_number, actual)
         except Exception as exc:
             self._communication_error("Nie udało się zmienić kąta MPC220", exc)
         finally:
@@ -324,6 +325,13 @@ class MPC220Controller(QObject):
         if not MPC_MIN_ANGLE_DEG <= angle_deg <= MPC_MAX_ANGLE_DEG:
             raise ValueError("Kąt MPC220 poza zakresem kalibracji.")
         self.request_set_angle.emit(paddle_number, angle_deg)
+
+    @Slot(int, float)
+    def adjust_angle(self, paddle_number: int, delta_deg: float) -> None:
+        """Relative move through the existing worker, with completion signal."""
+        if paddle_number not in (1, 2) or not math.isfinite(delta_deg):
+            raise ValueError("Nieprawidłowa łopatka lub przesunięcie MPC220.")
+        self.request_adjust_angle.emit(paddle_number, delta_deg)
 
     @Slot()
     def refresh_ports(self) -> None:

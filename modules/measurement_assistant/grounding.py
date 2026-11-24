@@ -1,4 +1,4 @@
-"""Conservative full-match grammar. Unknown text remains non-executable."""
+"""Historical full-match grammar; never used by backend, validator or runner."""
 import re
 import unicodedata
 

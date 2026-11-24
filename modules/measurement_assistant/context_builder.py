@@ -1,4 +1,8 @@
-"""Small extraction contract, with no numerical demonstrations."""
+"""Historical extraction experiment, disconnected from the active AI pipeline.
+
+Use prompt_loader.load_messages for all current callers. This module documents
+the pre-refactor approach; its extraction schema is no longer a supported API.
+"""
 import json
 from .action_registry import ACTION_REGISTRY
 
